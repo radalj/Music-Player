@@ -31,11 +31,10 @@ const getSubscriptionLabel = (type: string) => {
   return map[type] || map.free;
 };
 
-// ---------- Artist Profile Component (shared between pending & verified) ----------
+// ---------- Artist Profile Component ----------
 function ArtistProfileContent({ user, isPending }: { user: any; isPending: boolean }) {
   const artistId = user.id;
 
-  // خواندن وضعیت دنبال کردن از localStorage
   const getFollowStatus = (): boolean => {
     if (typeof window === 'undefined') return false;
     try {
@@ -46,7 +45,6 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
     }
   };
 
-  // خواندن تعداد فالوورها از localStorage (با fallback به مقدار اولیه از user)
   const getFollowersCount = (): number => {
     if (typeof window === 'undefined') return user?.followers || 0;
     try {
@@ -60,7 +58,6 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
   const [isFollowing, setIsFollowing] = useState(getFollowStatus());
   const [followersCount, setFollowersCount] = useState(getFollowersCount());
 
-  // ذخیره‌سازی در localStorage هر بار که وضعیت تغییر کند
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const followed = JSON.parse(localStorage.getItem('followed_artists') || '[]');
@@ -77,7 +74,6 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
     localStorage.setItem('artist_followers', JSON.stringify(data));
   }, [isFollowing, followersCount, artistId]);
 
-  // Get artist data from mock (in real app, fetch from API)
   const artistData = {
     bio: 'Indie rock band from California, bringing nostalgic vibes with modern twists.',
     verified: !isPending,
@@ -254,17 +250,16 @@ export default function ProfilePage() {
   const { user: authUser, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
 
-  // ---------- State محلی برای نمایش اطلاعات به‌روز شده ----------
-  const [localUser, setLocalUser] = useState(authUser);
+  // ✅ اصلاح: انتقال state به داخل تابع و استفاده از any
+  const [localUser, setLocalUser] = useState<any>(authUser);
 
-  // همگام‌سازی با authUser هر بار که تغییر کند
   useEffect(() => {
     if (authUser) {
       setLocalUser(authUser);
     }
   }, [authUser]);
 
-  // ---------- حالت‌های مربوط به فالو برای شنونده ----------
+  // ---------- Follow state for listener ----------
   const userId = localUser?.id || '';
 
   const getFollowStatus = (): boolean => {
@@ -315,7 +310,6 @@ export default function ProfilePage() {
     gender: localUser?.gender || '',
   });
 
-  // وقتی localUser تغییر کرد، editData رو هم به‌روز کن
   useEffect(() => {
     if (localUser) {
       setEditData({
@@ -328,7 +322,6 @@ export default function ProfilePage() {
     }
   }, [localUser]);
 
-  // Redirect if not logged in
   if (!localUser) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -368,8 +361,13 @@ export default function ProfilePage() {
     }
   };
 
+  // ✅ اصلاح: مدیریت صحیح خطا و استفاده از let
   const handleSaveEdit = () => {
-    // به‌روزرسانی localUser
+    if (!localUser) {
+      toast.error('User data not available');
+      return;
+    }
+
     const updatedUser = {
       ...localUser,
       displayName: editData.displayName,
@@ -377,20 +375,25 @@ export default function ProfilePage() {
       birthDate: editData.birthDate,
       gender: editData.gender,
     };
+
     setLocalUser(updatedUser);
-    // ذخیره در localStorage
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    // همچنین در صورت وجود registeredUsers، لیست را به‌روز کن
+
     try {
-      const registered = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      let registered = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      if (!Array.isArray(registered)) {
+        registered = [];
+      }
       const index = registered.findIndex((u: any) => u.id === updatedUser.id);
       if (index !== -1) {
         registered[index] = updatedUser;
         localStorage.setItem('registeredUsers', JSON.stringify(registered));
       }
-    } catch (e) {
-      // ignore
+    } catch (error) {
+      const registered = [updatedUser];
+      localStorage.setItem('registeredUsers', JSON.stringify(registered));
     }
+
     toast.success('Profile updated successfully');
     setIsEditing(false);
   };
