@@ -29,7 +29,7 @@ export const Sidebar = () => {
   const navItems = [
     { icon: HomeIcon, iconSolid: HomeIconSolid, label: 'Home', href: '/home' },
     { icon: UserIcon, iconSolid: UserIconSolid, label: 'Profile', href: '/profile' },
-    { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: 'Playlists', href: '/playlist' },
+    { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: 'Playlists', href: '/playlists' },
     { icon: MusicalNoteIcon, iconSolid: MusicalNoteIconSolid, label: 'Albums & Songs', href: '/albums' },
     { icon: BellIcon, iconSolid: BellIconSolid, label: 'Notifications', href: '/notifications' },
     { icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, label: 'Settings', href: '/settings' },
