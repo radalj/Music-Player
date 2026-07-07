@@ -607,7 +607,7 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => setActiveTab('tickets')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                activeTab === 'tickets' ? 'bg-primary text-black' : 'text-text-secondary hover:bg-[#1a1a1a]'
+                activeTab === 'tickets' ? 'bg-gray-600 text-white' : 'text-text-secondary hover:bg-[#1a1a1a]'
               }`}
             >
               <TicketIcon className="w-4 h-4 inline mr-1" /> Tickets & Verification
@@ -615,7 +615,7 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => setActiveTab('accounting')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                activeTab === 'accounting' ? 'bg-primary text-black' : 'text-text-secondary hover:bg-[#1a1a1a]'
+                activeTab === 'accounting' ? 'bg-gray-600 text-white' : 'text-text-secondary hover:bg-[#1a1a1a]'
               }`}
             >
               <CurrencyDollarIcon className="w-4 h-4 inline mr-1" /> Accounting
@@ -624,7 +624,7 @@ export default function AdminDashboardPage() {
               <button
                 onClick={() => setActiveTab('settings')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  activeTab === 'settings' ? 'bg-primary text-black' : 'text-text-secondary hover:bg-[#1a1a1a]'
+                  activeTab === 'settings' ? 'bg-gray-600 text-white' : 'text-text-secondary hover:bg-[#1a1a1a]'
                 }`}
               >
                 <Cog6ToothIcon className="w-4 h-4 inline mr-1" /> Settings

@@ -37,7 +37,7 @@ export const Sidebar = () => {
 
   // Add admin/artist dashboard if applicable
   const extraItems = [];
-  if (user?.role === 'artist' || user?.role === 'admin') {
+  if (user?.role === 'artist') {
     extraItems.push({
       icon: ChartBarIcon,
       iconSolid: ChartBarIcon,

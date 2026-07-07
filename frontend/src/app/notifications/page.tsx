@@ -263,7 +263,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="flex h-screen bg-dark">
+    <div className="flex h-screen bg-d  ark">
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-28">
         <div className="max-w-4xl mx-auto p-6">
