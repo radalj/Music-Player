@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import { Player } from '@/components/common/Player';
 import { PlusIcon, PencilIcon, TrashIcon, MusicalNoteIcon } from '@heroicons/react/24/outline';
@@ -27,7 +28,7 @@ interface Playlist {
 // ---------- Helper ----------
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
-// تابع کمکی برای بارگذاری پلی‌لیست‌های یک کاربر خاص
+// Load playlists from localStorage
 const loadPlaylists = (userId?: string): Playlist[] => {
   if (typeof window === 'undefined') return [];
   if (!userId) return [];
@@ -49,8 +50,8 @@ const loadPlaylists = (userId?: string): Playlist[] => {
 // ---------- Main Page ----------
 export default function PlaylistsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
-  // ✅ مقدار اولیه: مستقیماً از localStorage بخوان (اگر کاربر وجود داشته باشد)
   const [playlists, setPlaylists] = useState<Playlist[]>(() =>
     loadPlaylists(user?.id)
   );
@@ -60,7 +61,7 @@ export default function PlaylistsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  // وقتی کاربر تغییر کرد (ورود/خروج)، پلی‌لیست‌ها را دوباره بارگذاری کن
+  // Reload when user changes
   useEffect(() => {
     if (user) {
       setPlaylists(loadPlaylists(user.id));
@@ -69,7 +70,7 @@ export default function PlaylistsPage() {
     }
   }, [user]);
 
-  // ذخیره خودکار در localStorage هر بار که playlists یا user تغییر کند
+  // Auto-save to localStorage
   useEffect(() => {
     if (!user) return;
     const key = `playlists_${user.id}`;
@@ -80,7 +81,7 @@ export default function PlaylistsPage() {
     }
   }, [playlists, user]);
 
-  // ---------- محدودیت‌های اشتراک ----------
+  // ---------- Subscription limits ----------
   const getMaxPlaylists = (): number => {
     if (!user) return 6;
     switch (user.subscriptionType) {
@@ -93,14 +94,15 @@ export default function PlaylistsPage() {
   const maxPlaylists = getMaxPlaylists();
   const canCreate = playlists.length < maxPlaylists;
 
-  // ---------- عملیات CRUD ----------
+  // ---------- CRUD ----------
   const handleCreate = () => {
     if (!canCreate) {
-      toast.error(`You have reached the maximum of ${maxPlaylists === Infinity ? 'unlimited' : maxPlaylists} playlists for your plan.`);
+      const limitMsg = maxPlaylists === Infinity ? t('playlists.unlimited') : maxPlaylists.toString();
+      toast.error(t('playlists.limit_reached', { limit: limitMsg }));
       return;
     }
     if (!newPlaylistName.trim()) {
-      toast.error('Playlist name cannot be empty.');
+      toast.error(t('playlists.name_empty'));
       return;
     }
     const newPlaylist: Playlist = {
@@ -112,13 +114,13 @@ export default function PlaylistsPage() {
     setPlaylists(prev => [...prev, newPlaylist]);
     setNewPlaylistName('');
     setIsCreating(false);
-    toast.success(`Playlist "${newPlaylistName}" created!`);
+    toast.success(t('playlists.created', { name: newPlaylistName.trim() }));
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this playlist?')) {
+    if (confirm(t('playlists.delete_confirm'))) {
       setPlaylists(prev => prev.filter(p => p.id !== id));
-      toast.success('Playlist deleted.');
+      toast.success(t('playlists.deleted'));
     }
   };
 
@@ -129,7 +131,7 @@ export default function PlaylistsPage() {
 
   const handleSaveEdit = (id: string) => {
     if (!editName.trim()) {
-      toast.error('Name cannot be empty.');
+      toast.error(t('playlists.name_empty'));
       return;
     }
     setPlaylists(prev =>
@@ -137,7 +139,7 @@ export default function PlaylistsPage() {
     );
     setEditingId(null);
     setEditName('');
-    toast.success('Playlist renamed.');
+    toast.success(t('playlists.renamed'));
   };
 
   const handleCancelEdit = () => {
@@ -153,10 +155,12 @@ export default function PlaylistsPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
-        <p className="text-white">Please login to view your playlists.</p>
+        <p className="text-white">{t('playlists.login_required')}</p>
       </div>
     );
   }
+
+  const limitDisplay = maxPlaylists === Infinity ? '∞' : `${playlists.length} / ${maxPlaylists}`;
 
   return (
     <div className="flex h-screen bg-dark">
@@ -165,11 +169,9 @@ export default function PlaylistsPage() {
         <div className="max-w-4xl mx-auto p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-white">🎵 Your Playlists</h1>
+            <h1 className="text-2xl font-bold text-white">{t('playlists.title')}</h1>
             <div className="flex items-center gap-3">
-              <span className="text-text-secondary text-sm">
-                {playlists.length} {maxPlaylists !== Infinity ? `/ ${maxPlaylists}` : ''}
-              </span>
+              <span className="text-text-secondary text-sm">{limitDisplay}</span>
               <button
                 onClick={() => setIsCreating(true)}
                 disabled={!canCreate}
@@ -180,7 +182,7 @@ export default function PlaylistsPage() {
                 }`}
               >
                 <PlusIcon className="w-4 h-4" />
-                New Playlist
+                {t('playlists.new_playlist')}
               </button>
             </div>
           </div>
@@ -192,7 +194,7 @@ export default function PlaylistsPage() {
                 type="text"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
-                placeholder="Enter playlist name..."
+                placeholder={t('playlists.name_placeholder')}
                 className="flex-1 p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
@@ -202,13 +204,13 @@ export default function PlaylistsPage() {
                   onClick={handleCreate}
                   className="px-4 py-2 bg-primary text-black font-medium rounded hover:bg-opacity-80 transition"
                 >
-                  Create
+                  {t('playlists.create')}
                 </button>
                 <button
                   onClick={() => { setIsCreating(false); setNewPlaylistName(''); }}
                   className="px-4 py-2 bg-[#2a2a2a] text-white border border-gray-600 rounded hover:bg-[#333] transition"
                 >
-                  Cancel
+                  {t('playlists.cancel')}
                 </button>
               </div>
             </div>
@@ -218,15 +220,13 @@ export default function PlaylistsPage() {
           {playlists.length === 0 && !isCreating && (
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-12 text-center">
               <div className="text-5xl mb-4">🎶</div>
-              <h2 className="text-xl font-semibold text-white mb-2">No playlists yet</h2>
-              <p className="text-text-secondary mb-6">
-                Create your first playlist and start organizing your music.
-              </p>
+              <h2 className="text-xl font-semibold text-white mb-2">{t('playlists.empty_title')}</h2>
+              <p className="text-text-secondary mb-6">{t('playlists.empty_desc')}</p>
               <button
                 onClick={() => setIsCreating(true)}
                 className="px-6 py-3 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
               >
-                + Create First Playlist
+                {t('playlists.create_first')}
               </button>
             </div>
           )}
@@ -238,7 +238,6 @@ export default function PlaylistsPage() {
                 key={playlist.id}
                 className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition"
               >
-                {/* Header with name and actions */}
                 <div className="flex items-start justify-between">
                   {editingId === playlist.id ? (
                     <div className="flex-1 flex gap-2">
@@ -254,13 +253,13 @@ export default function PlaylistsPage() {
                         onClick={() => handleSaveEdit(playlist.id)}
                         className="px-3 py-1 bg-primary text-black text-xs font-medium rounded hover:bg-opacity-80 transition"
                       >
-                        Save
+                        {t('playlists.save')}
                       </button>
                       <button
                         onClick={handleCancelEdit}
                         className="px-3 py-1 bg-[#2a2a2a] text-white border border-gray-600 text-xs rounded hover:bg-[#333] transition"
                       >
-                        Cancel
+                        {t('playlists.cancel')}
                       </button>
                     </div>
                   ) : (
@@ -287,7 +286,7 @@ export default function PlaylistsPage() {
                 {/* Tracks list */}
                 <div className="mt-3 space-y-1">
                   {playlist.tracks.length === 0 ? (
-                    <p className="text-text-secondary text-sm">No tracks added yet.</p>
+                    <p className="text-text-secondary text-sm">{t('playlists.no_tracks')}</p>
                   ) : (
                     playlist.tracks.map((track) => (
                       <div key={track.id} className="flex items-center gap-2 text-text-secondary text-sm">
@@ -304,7 +303,7 @@ export default function PlaylistsPage() {
                   onClick={() => handleAddTracks(playlist.id)}
                   className="mt-3 w-full py-2 border border-dashed border-gray-600 rounded-lg text-text-secondary text-sm hover:text-white hover:border-gray-400 transition"
                 >
-                  + Add Tracks
+                  {t('playlists.add_tracks')}
                 </button>
               </div>
             ))}
@@ -313,8 +312,7 @@ export default function PlaylistsPage() {
           {/* Limit reached message */}
           {!canCreate && playlists.length > 0 && (
             <p className="mt-4 text-yellow-400 text-sm text-center">
-              You have reached the maximum number of playlists for your subscription plan.
-              Upgrade to Silver or Gold to create more.
+              {t('playlists.limit_message')}
             </p>
           )}
         </div>

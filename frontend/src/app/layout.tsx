@@ -1,9 +1,10 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import { Toaster } from "react-hot-toast";
+import HtmlLang from "@/components/common/HtmlLang";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +21,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster position="top-right" />
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <HtmlLang /> {/* تنظیم lang و dir */}
+            {children}
+            <Toaster position="top-right" />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );
