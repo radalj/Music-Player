@@ -27,42 +27,58 @@ interface Playlist {
 // ---------- Helper ----------
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
+// تابع کمکی برای بارگذاری پلی‌لیست‌های یک کاربر خاص
+const loadPlaylists = (userId?: string): Playlist[] => {
+  if (typeof window === 'undefined') return [];
+  if (!userId) return [];
+  const key = `playlists_${userId}`;
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error('Error loading playlists:', error);
+  }
+  return [];
+};
+
 // ---------- Main Page ----------
 export default function PlaylistsPage() {
   const { user } = useAuth();
-  
-  // ✅ بارگذاری مستقیم از localStorage در مقدار اولیه
-  const [playlists, setPlaylists] = useState<Playlist[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const stored = localStorage.getItem('playlists');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // اطمینان از اینکه آرایه است
-        if (Array.isArray(parsed)) {
-          return parsed;
-        }
-      }
-    } catch (error) {
-      console.error('Error loading playlists:', error);
-    }
-    return [];
-  });
+
+  // ✅ مقدار اولیه: مستقیماً از localStorage بخوان (اگر کاربر وجود داشته باشد)
+  const [playlists, setPlaylists] = useState<Playlist[]>(() =>
+    loadPlaylists(user?.id)
+  );
 
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
-  // ذخیره خودکار در localStorage هر بار که playlists تغییر کند
+  // وقتی کاربر تغییر کرد (ورود/خروج)، پلی‌لیست‌ها را دوباره بارگذاری کن
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (user) {
+      setPlaylists(loadPlaylists(user.id));
+    } else {
+      setPlaylists([]);
+    }
+  }, [user]);
+
+  // ذخیره خودکار در localStorage هر بار که playlists یا user تغییر کند
+  useEffect(() => {
+    if (!user) return;
+    const key = `playlists_${user.id}`;
     try {
-      localStorage.setItem('playlists', JSON.stringify(playlists));
+      localStorage.setItem(key, JSON.stringify(playlists));
     } catch (error) {
       console.error('Error saving playlists:', error);
     }
-  }, [playlists]);
+  }, [playlists, user]);
 
   // ---------- محدودیت‌های اشتراک ----------
   const getMaxPlaylists = (): number => {
@@ -130,7 +146,6 @@ export default function PlaylistsPage() {
   };
 
   const handleAddTracks = (playlistId: string) => {
-    // هدایت به صفحه آلبوم‌ها با پارامتر playlistId
     window.location.href = `/albums?addToPlaylist=${playlistId}`;
   };
 
@@ -160,7 +175,7 @@ export default function PlaylistsPage() {
                 disabled={!canCreate}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
                   canCreate
-                    ? 'bg-primary text-white hover:bg-opacity-80'
+                    ? 'bg-primary text-black hover:bg-opacity-80'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -209,7 +224,7 @@ export default function PlaylistsPage() {
               </p>
               <button
                 onClick={() => setIsCreating(true)}
-                className="px-6 py-3 bg-primary text-white font-medium rounded-full hover:bg-opacity-80 transition"
+                className="px-6 py-3 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
               >
                 + Create First Playlist
               </button>
