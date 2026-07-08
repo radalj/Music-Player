@@ -92,8 +92,7 @@ export default function SettingsPage() {
   };
 
   const handleLanguageChange = (lang: 'en' | 'fa') => {
-    setLanguage(lang); // update global language
-    // We don't need to update settings.language anymore
+    setLanguage(lang);
     toast.success(`Language changed to ${lang === 'en' ? 'English' : 'Persian'}`);
   };
 
@@ -109,7 +108,6 @@ export default function SettingsPage() {
     setIsDeleting(true);
     setTimeout(() => {
       if (user) {
-        // Remove user-specific keys
         const keysToRemove = [
           `settings_${user.id}`,
           `playlists_${user.id}`,
@@ -120,14 +118,12 @@ export default function SettingsPage() {
         ];
         keysToRemove.forEach(key => localStorage.removeItem(key));
 
-        // Remove this user's notifications from the global notifications list
         try {
           const allNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
           const filtered = allNotifs.filter((n: any) => n.userId !== user.id);
           localStorage.setItem('notifications', JSON.stringify(filtered));
         } catch (e) {}
 
-        // Remove only this user from registeredUsers
         try {
           const registered = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
           const updated = registered.filter((u: any) => u.id !== user.id);
@@ -151,7 +147,7 @@ export default function SettingsPage() {
     );
   }
 
-  // Subscription info
+  // Subscription info (only used if user is listener)
   const subLabels: Record<string, { label: string; color: string; icon: string }> = {
     free: { label: t('subscription.free') || 'Free', color: 'text-gray-400', icon: '🎵' },
     silver: { label: t('subscription.silver') || 'Silver', color: 'text-gray-300', icon: '🥈' },
@@ -235,33 +231,35 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            {/* ---------- Subscription ---------- */}
-            <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <CreditCardIcon className="w-5 h-5 text-primary" />
-                {t('settings.subscription_section')}
-              </h2>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-text-secondary text-sm">{t('settings.current_plan')}</p>
-                  <p className={`text-2xl font-bold ${subInfo.color}`}>
-                    {subInfo.icon && `${subInfo.icon} `}
-                    {subInfo.label}
-                  </p>
+            {/* ---------- Subscription (only for listeners) ---------- */}
+            {user.role === 'listener' && (
+              <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <CreditCardIcon className="w-5 h-5 text-primary" />
+                  {t('settings.subscription_section')}
+                </h2>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-text-secondary text-sm">{t('settings.current_plan')}</p>
+                    <p className={`text-2xl font-bold ${subInfo.color}`}>
+                      {subInfo.icon && `${subInfo.icon} `}
+                      {subInfo.label}
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleUpgrade}
+                    className="px-6 py-2 bg-primary text-white font-medium rounded-full hover:bg-opacity-80 transition"
+                  >
+                    {user.subscriptionType === 'gold' ? t('settings.manage') : t('settings.upgrade')}
+                  </button>
                 </div>
-                <button
-                  onClick={handleUpgrade}
-                  className="px-6 py-2 bg-primary text-white font-medium rounded-full hover:bg-opacity-80 transition"
-                >
-                  {user.subscriptionType === 'gold' ? t('settings.manage') : t('settings.upgrade')}
-                </button>
-              </div>
-              {user.subscriptionType !== 'gold' && (
-                <p className="mt-2 text-text-secondary text-sm">
-                  {t('settings.upgrade_message')}
-                </p>
-              )}
-            </section>
+                {user.subscriptionType !== 'gold' && (
+                  <p className="mt-2 text-text-secondary text-sm">
+                    {t('settings.upgrade_message')}
+                  </p>
+                )}
+              </section>
+            )}
 
             {/* ---------- Delete Account ---------- */}
             <section className="bg-[#1a1a1a] border border-red-800/50 rounded-xl p-6">
