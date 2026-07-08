@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
-import { Player } from '@/components/common/Player';
+import Player from '@/components/common/Player';
 import {
   getArtistById,
   getAlbumsByArtistId,
