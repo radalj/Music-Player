@@ -12,12 +12,10 @@ import {
   SpeakerXMarkIcon,
   QueueListIcon,
   ArrowsRightLeftIcon,
-  ArrowPathIcon,
   XMarkIcon,
 } from '@heroicons/react/24/solid';
 import { mockTracks } from '@/utils/mockData';
 import Link from 'next/link';
-import Image from 'next/image';
 import toast from 'react-hot-toast';
 
 // ---------- Types ----------
@@ -42,15 +40,16 @@ export default function Player() {
   const { t } = useLanguage();
 
   // ---------- State ----------
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+  const [queue] = useState<Track[]>(() => [...mockTracks]);
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(() => mockTracks[0] ?? null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('none');
   const [isShuffled, setIsShuffled] = useState(false);
-  const [queue, setQueue] = useState<Track[]>([]);
   const [queueIndex, setQueueIndex] = useState(0);
   const [showQueue, setShowQueue] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -59,30 +58,73 @@ export default function Player() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // ---------- Initialize with first track ----------
-  useEffect(() => {
-    if (mockTracks.length > 0 && !currentTrack) {
-      const initialQueue = [...mockTracks];
-      setQueue(initialQueue);
-      setCurrentTrack(initialQueue[0]);
-      setQueueIndex(0);
+  function getNextIndex(): number {
+    if (isShuffled) {
+      // Random track from queue
+      let randomIndex;
+      do {
+        randomIndex = Math.floor(Math.random() * queue.length);
+      } while (randomIndex === queueIndex && queue.length > 1);
+      return randomIndex;
     }
-  }, []);
+
+    if (queueIndex < queue.length - 1) {
+      return queueIndex + 1;
+    }
+
+    if (repeatMode === 'all') {
+      return 0; // Loop back to start
+    }
+
+    return -1; // End of queue
+  }
+
+  function getPrevIndex(): number {
+    if (queueIndex > 0) {
+      return queueIndex - 1;
+    }
+    if (repeatMode === 'all' || isShuffled) {
+      return queue.length - 1;
+    }
+    return -1;
+  }
+
+  function handleTrackEnd() {
+    if (repeatMode === 'one') {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+      return;
+    }
+
+    const nextIndex = getNextIndex();
+    if (nextIndex === -1) {
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+      return;
+    }
+
+    setQueueIndex(nextIndex);
+    setCurrentTrack(queue[nextIndex]);
+    setProgress(0);
+    setCurrentTime(0);
+  }
 
   // ---------- Audio element setup ----------
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const audio = new Audio();
     audio.preload = 'metadata'; // ✅ Preload metadata
-    audioRef.current = audio;
 
     const handleLoadedMetadata = () => {
       console.log('Audio loaded, duration:', audio.duration);
       setDuration(audio.duration);
     };
 
-    const handleError = (e: any) => {
+    const handleError = (e: Event) => {
       console.error('Audio error:', e);
       console.log('Failed URL:', audio.src);
     };
@@ -127,6 +169,7 @@ export default function Player() {
 
     progressInterval.current = setInterval(() => {
       if (audio.duration > 0 && !isNaN(audio.duration)) {
+        setCurrentTime(audio.currentTime);
         setProgress((audio.currentTime / audio.duration) * 100);
       }
     }, 100);
@@ -158,62 +201,6 @@ export default function Player() {
     if (!audioRef.current) return;
     audioRef.current.volume = isMuted ? 0 : volume / 100;
   }, [volume, isMuted]);
-
-  // ---------- Handlers ----------
-  const handleTrackEnd = () => {
-    if (repeatMode === 'one') {
-      // Replay current track
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
-      return;
-    }
-
-    // Move to next track
-    const nextIndex = getNextIndex();
-    if (nextIndex === -1) {
-      // End of queue
-      setIsPlaying(false);
-      setProgress(0);
-      return;
-    }
-
-    setQueueIndex(nextIndex);
-    setCurrentTrack(queue[nextIndex]);
-    setProgress(0);
-  };
-
-  const getNextIndex = (): number => {
-    if (isShuffled) {
-      // Random track from queue
-      let randomIndex;
-      do {
-        randomIndex = Math.floor(Math.random() * queue.length);
-      } while (randomIndex === queueIndex && queue.length > 1);
-      return randomIndex;
-    }
-
-    if (queueIndex < queue.length - 1) {
-      return queueIndex + 1;
-    }
-
-    if (repeatMode === 'all') {
-      return 0; // Loop back to start
-    }
-
-    return -1; // End of queue
-  };
-
-  const getPrevIndex = (): number => {
-    if (queueIndex > 0) {
-      return queueIndex - 1;
-    }
-    if (repeatMode === 'all' || isShuffled) {
-      return queue.length - 1;
-    }
-    return -1;
-  };
 
   const togglePlay = () => {
     if (!currentTrack) {
@@ -277,7 +264,9 @@ export default function Player() {
     const newProgress = parseFloat(e.target.value);
     setProgress(newProgress);
     if (audioRef.current && duration > 0) {
-      audioRef.current.currentTime = (newProgress / 100) * duration;
+      const nextTime = (newProgress / 100) * duration;
+      audioRef.current.currentTime = nextTime;
+      setCurrentTime(nextTime);
     }
   };
 
@@ -412,7 +401,7 @@ export default function Player() {
           {/* Progress Bar */}
           <div className="flex items-center gap-2 w-full mt-1">
             <span className="text-xs text-text-secondary font-mono">
-              {formatTime(audioRef.current?.currentTime || 0)}
+              {formatTime(currentTime)}
             </span>
             <input
               type="range"
@@ -520,8 +509,8 @@ export default function Player() {
         </div>
       )}
 
-      {/* Hidden audio element for reference */}
-      <audio ref={audioRef} style={{ display: 'none' }} />
+      {/* Hidden audio element used for playback */}
+      <audio ref={audioRef} className="hidden" />
 
       {/* Lyrics Popup (Optional) */}
       {showLyrics && currentTrack.lyrics && (
