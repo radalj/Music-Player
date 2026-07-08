@@ -120,7 +120,21 @@
     "genre": "ژانر",
     "release_year": "سال انتشار",
     "duration": "مدت زمان",
-    "lyrics": "متن آهنگ"
+    "lyrics": "متن آهنگ",
+    "play": "پخش",
+    "pause": "توقف",
+    "next": "بعدی",
+    "previous": "قبلی",
+    "shuffle": "تصادفی",
+    "shuffle_on": "فعال کردن تصادفی",
+    "shuffle_off": "غیرفعال کردن تصادفی",
+    "repeat_off": "غیرفعال کردن تکرار",
+    "repeat_all": "تکرار همه",
+    "repeat_one": "تکرار یک",
+    "queue": "صف انتظار",
+    "no_track": "هیچ آهنگی انتخاب نشده است",
+    "end_of_queue": "پایان صف انتظار",
+    "volume": "صدا"
   },
   "album": {
     "total_duration": "مدت زمان کل",
