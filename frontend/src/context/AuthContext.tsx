@@ -30,14 +30,13 @@ const saveRegisteredUsers = (users: User[]) => {
 // ثبت کاربر جدید در لیست کاربران ثبت‌نام شده
 export const registerUserInStorage = (newUser: User) => {
   const users = getRegisteredUsers();
-  // جلوگیری از ثبت تکراری (بر اساس ایمیل)
   const exists = users.some(u => u.email === newUser.email);
-  if (!exists) {
-    users.push(newUser);
-    saveRegisteredUsers(users);
-    // همچنین کاربر فعلی را در localStorage ذخیره می‌کنیم (برای لاگین خودکار در صورت نیاز)
-    localStorage.setItem('user', JSON.stringify(newUser));
+  if (exists) {
+    throw new Error('This email is already registered. Please use a different email or login.');
   }
+  users.push(newUser);
+  saveRegisteredUsers(users);
+  localStorage.setItem('user', JSON.stringify(newUser));
   return newUser;
 };
 

@@ -32,6 +32,17 @@ export default function RegisterPage() {
     portfolio: '',
   });
 
+  // ---------- تابع کمکی برای بررسی تکراری بودن ایمیل در localStorage ----------
+  const isEmailRegistered = (email: string): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      return users.some((u: any) => u.email === email);
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -60,6 +71,13 @@ export default function RegisterPage() {
       }
     }
 
+    // ---------- بررسی تکراری بودن ایمیل ----------
+    const emailToCheck = isArtist ? artistData.email : formData.email;
+    if (isEmailRegistered(emailToCheck)) {
+      toast.error('This email is already registered. Please use a different email or login.');
+      return; // از ادامه جلوگیری می‌کند (لاگین خودکار و هدایت انجام نمی‌شود)
+    }
+
     setLoading(true);
 
     try {
@@ -69,7 +87,7 @@ export default function RegisterPage() {
           ? artistData.artistName.toLowerCase().replace(/\s/g, '')
           : formData.username,
         displayName: isArtist ? artistData.artistName : formData.displayName,
-        email: isArtist ? artistData.email : formData.email,
+        email: emailToCheck,
         password: isArtist ? artistData.password : formData.password,
         subscriptionType: 'free' as const,
         role: isArtist ? 'pending_artist' : 'listener',
