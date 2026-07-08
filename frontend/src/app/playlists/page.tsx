@@ -13,7 +13,10 @@ import toast from 'react-hot-toast';
 interface Track {
   id: string;
   title: string;
-  artist: string;
+  artist: {
+    id: string;
+    name: string;
+  };
   coverImage?: string;
   duration?: number;
 }
@@ -292,7 +295,9 @@ export default function PlaylistsPage() {
                       <div key={track.id} className="flex items-center gap-2 text-text-secondary text-sm">
                         <MusicalNoteIcon className="w-3 h-3" />
                         <span>{track.title}</span>
-                        <span className="text-xs text-text-secondary/70">— {track.artist}</span>
+                        <span className="text-xs text-text-secondary/70">
+                          — {track.artist.name}
+                        </span>
                       </div>
                     ))
                   )}

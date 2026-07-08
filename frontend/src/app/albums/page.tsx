@@ -28,6 +28,8 @@ interface Track {
   listeners: number;
   streams: number;
   releaseDate: Date;
+  audioUrl: string;
+  lyrics?: string;
 }
 
 interface Album {
@@ -71,10 +73,41 @@ const loadPlaylists = (userId?: string): Playlist[] => {
   return [];
 };
 
+// ---------- Helper Functions ----------
 const savePlaylists = (userId: string, playlists: Playlist[]) => {
   if (typeof window === 'undefined') return;
   const key = `playlists_${userId}`;
-  localStorage.setItem(key, JSON.stringify(playlists));
+  
+  // ✅ Sanitize playlists to remove circular references
+  const sanitizedPlaylists = playlists.map(playlist => ({
+    id: playlist.id,
+    name: playlist.name,
+    createdAt: playlist.createdAt,
+    tracks: playlist.tracks.map(track => ({
+      id: track.id,
+      title: track.title,
+      artist: {
+        id: track.artist.id,
+        name: track.artist.name,
+      },
+      coverImage: track.coverImage,
+      duration: track.duration,
+      album: track.album ? {
+        id: track.album.id,
+        title: track.album.title,
+      } : undefined,
+      listeners: track.listeners,
+      streams: track.streams,
+      audioUrl: track.audioUrl,
+      lyrics: track.lyrics,
+    })),
+  }));
+  
+  try {
+    localStorage.setItem(key, JSON.stringify(sanitizedPlaylists));
+  } catch (error) {
+    console.error('Error saving playlists:', error);
+  }
 };
 
 // ---------- Main Component ----------
