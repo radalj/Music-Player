@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Sidebar } from '@/components/common/Sidebar';
-import { Player } from '@/components/common/Player';
+import Player from '@/components/common/Player';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { mockAlbums, mockTracks } from '@/utils/mockData';

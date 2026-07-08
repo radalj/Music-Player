@@ -90,5 +90,62 @@
     "login_required": "Please login to access the artist dashboard.",
     "access_denied": "You don't have permission to access this page.",
     "with": "with"
+  },
+  "albums": {
+    "title": "🎵 Albums & Tracks",
+    "search_placeholder": "Search by track, artist, or album...",
+    "latest": "Latest",
+    "most_popular": "Most Popular",
+    "no_results": "No results found",
+    "no_results_desc": "Try adjusting your search or filters.",
+    "tracks": "tracks",
+    "add_to_playlist": "Add to playlist",
+    "no_playlists": "No playlists yet. Create one →",
+    "login_required": "Please login to browse albums and tracks.",
+    "create_playlist": "Create Playlist",
+    "albums_section": "Albums",
+    "tracks_section": "Tracks",
+    "tracks_count": "tracks count",
+    "track_not_found": "Track not found.",
+    "playlist_not_found": "Playlist not found.",
+    "playlist_full": "This playlist is full (max 50 tracks).",
+    "added_to_playlist": "Track added to playlist.",
+    "removed_from_playlist": "Track removed from playlist."
+  },
+  "player": {
+    "track_info": "Track Info",
+    "title": "Title",
+    "artist": "Artist",
+    "album": "Album",
+    "genre": "Genre",
+    "release_year": "Release Year",
+    "duration": "Duration",
+    "lyrics": "Lyrics",
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "previous": "Previous",
+    "shuffle": "Shuffle",
+    "shuffle_on": "Shuffle on",
+    "shuffle_off": "Shuffle off",
+    "repeat_off": "Repeat off",
+    "repeat_all": "Repeat all",
+    "repeat_one": "Repeat one",
+    "queue": "Queue",
+    "no_track": "No track selected",
+    "end_of_queue": "End of queue",
+    "volume": "Volume"
+  },
+  "album": {
+    "total_duration": "Total Duration",
+    "total_streams": "Total Streams",
+    "total_listeners": "Total Listeners"
+  },
+  "artist": {
+    "listeners": "Listeners",
+    "streams": "Streams",
+    "albums": "Albums",
+    "tracks": "Tracks",
+    "popular_tracks": "Popular Tracks"
   }
 }

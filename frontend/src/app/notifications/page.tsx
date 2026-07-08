@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Sidebar } from '@/components/common/Sidebar';
-import { Player } from '@/components/common/Player';
+import Player from '@/components/common/Player';
 import {
   BellIcon,
   CheckCircleIcon,

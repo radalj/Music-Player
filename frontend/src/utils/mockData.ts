@@ -1,97 +1,174 @@
-import { User, Artist, Album, Track, Playlist, Notification } from '@/types';
+// src/utils/mockData.ts
 
-// Mock Users
-export const mockUsers: User[] = [
-  {
-    id: 'user1',
-    username: 'johndoe',
-    displayName: 'John Doe',
-    email: 'john@example.com',
-    profileImage: '/images/profile1.jpg',
-    subscriptionType: 'gold',
-    role: 'listener',
-    followers: 234,
-    following: 45,
-    dailyStreams: 28,
-    birthDate: new Date('1995-03-15'),
-    gender: 'male',
-  },
-  {
-    id: 'user2',
-    username: 'janedoe',
-    displayName: 'Jane Doe',
-    email: 'jane@example.com',
-    profileImage: '/images/profile2.jpg',
-    subscriptionType: 'silver',
-    role: 'artist',
-    followers: 1250,
-    following: 30,
-    dailyStreams: 156,
-    birthDate: new Date('1992-07-22'),
-    gender: 'female',
-  },
-  {
-    id: 'user3',
-    username: 'alexsmith',
-    displayName: 'Alex Smith',
-    email: 'alex@example.com',
-    profileImage: '/images/profile3.jpg',
-    subscriptionType: 'free',
-    role: 'listener',
-    followers: 12,
-    following: 67,
-    dailyStreams: 3,
-    birthDate: new Date('2000-11-05'),
-    gender: 'non-binary',
-  },
-];
+export type SubscriptionType = 'free' | 'silver' | 'gold';
+export type UserRole = 'listener' | 'artist' | 'supporter' | 'admin' | 'pending_artist';
 
-// Mock Artists
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  password?: string;
+  profileImage?: string;
+  subscriptionType: SubscriptionType;
+  role: UserRole;
+  followers: number;
+  following: number;
+  dailyStreams: number;
+  birthDate?: string;
+  gender?: string;
+  awaitingApproval?: boolean;
+  portfolio?: string;
+  submittedAt?: string;
+}
+
+export interface Artist {
+  id: string;
+  name: string;
+  bio: string;
+  verified: boolean;
+  profileImage?: string;
+  totalListeners: number;
+  totalStreams: number;
+  awaitingApproval?: boolean;
+  socialLinks?: {
+    instagram?: string;
+    twitter?: string;
+    soundcloud?: string;
+    spotify?: string;
+  };
+}
+
+export interface Album {
+  id: string;
+  title: string;
+  artist: Artist;
+  coverImage: string;
+  releaseDate: Date;
+  genre: string[];
+  tracks: Track[];
+  description?: string;
+  label?: string;
+}
+
+export interface Track {
+  id: string;
+  title: string;
+  artist: Artist;
+  album?: Album;
+  duration: number;
+  coverImage: string;
+  lyrics?: string;
+  listeners: number;
+  streams: number;
+  audioUrl: string;
+  genre: string[];
+  releaseDate: Date;
+  explicit?: boolean;
+  featuredArtists?: Artist[];
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  creator: User;
+  tracks: Track[];
+  coverImage?: string;
+  createdAt: Date;
+  description?: string;
+}
+
+// ----- Mock Artists -----
 export const mockArtists: Artist[] = [
   {
     id: 'artist1',
     name: 'The Midnight Waves',
-    bio: 'Indie rock band from California, bringing nostalgic vibes with modern twists.',
+    bio: 'Indie rock band from California, bringing nostalgic vibes with modern twists. Formed in 2018, they have been making waves in the indie scene with their dreamy soundscapes and heartfelt lyrics.',
     verified: true,
-    profileImage: '/images/artist1.jpg',
+    profileImage: '/images/artists/midnight-waves.jpg',
     totalListeners: 45200,
     totalStreams: 1245000,
+    socialLinks: {
+      instagram: '@midnightwaves',
+      twitter: '@midnightwaves',
+      soundcloud: 'midnight-waves',
+      spotify: 'midnight-waves',
+    },
   },
   {
     id: 'artist2',
     name: 'Luna Star',
-    bio: 'Soulful pop singer-songwriter with a voice that touches the heart.',
+    bio: 'Soulful pop singer-songwriter with a voice that touches the heart. Luna\'s music blends pop, soul, and R&B with introspective lyrics about love, loss, and self-discovery.',
     verified: true,
-    profileImage: '/images/artist2.jpg',
+    profileImage: '/images/artists/luna-star.jpg',
     totalListeners: 31200,
     totalStreams: 876000,
+    socialLinks: {
+      instagram: '@lunastar',
+      twitter: '@lunastar',
+      spotify: 'luna-star',
+    },
   },
   {
     id: 'artist3',
     name: 'Neon Pulse',
-    bio: 'Electronic music producer exploring the boundaries of synth-wave.',
+    bio: 'Electronic music producer exploring the boundaries of synth-wave and ambient sounds. Neon Pulse creates immersive sonic experiences that transport listeners to futuristic landscapes.',
     verified: false,
-    profileImage: '/images/artist3.jpg',
+    profileImage: '/images/artists/neon-pulse.jpg',
     totalListeners: 8900,
     totalStreams: 234000,
+    socialLinks: {
+      soundcloud: 'neon-pulse',
+      spotify: 'neon-pulse',
+    },
+  },
+  {
+    id: 'artist4',
+    name: 'Golden Echo',
+    bio: 'Folk-pop duo known for their harmonious vocals and acoustic arrangements. Golden Echo brings warmth and intimacy to every performance, with songs that feel like home.',
+    verified: true,
+    profileImage: '/images/artists/golden-echo.jpg',
+    totalListeners: 15600,
+    totalStreams: 412000,
+  },
+  {
+    id: 'artist5',
+    name: 'Crimson Tide',
+    bio: 'Heavy metal band from the Pacific Northwest, delivering powerful riffs and intense performances. Crimson Tide has been a staple in the metal scene for over a decade.',
+    verified: true,
+    profileImage: '/images/artists/crimson-tide.jpg',
+    totalListeners: 28900,
+    totalStreams: 789000,
+  },
+  {
+    id: 'artist6',
+    name: 'Velvet Sky',
+    bio: 'Dream pop artist creating ethereal soundscapes with lush production and delicate vocals. Velvet Sky\'s music is perfect for late-night listening and introspection.',
+    verified: false,
+    profileImage: '/images/artists/velvet-sky.jpg',
+    totalListeners: 7200,
+    totalStreams: 198000,
   },
 ];
 
-// Create tracks with proper references
+// ----- Create tracks with proper references -----
 const artist1 = mockArtists[0];
 const artist2 = mockArtists[1];
 const artist3 = mockArtists[2];
+const artist4 = mockArtists[3];
+const artist5 = mockArtists[4];
+const artist6 = mockArtists[5];
 
-// Mock Tracks
+// ----- Mock Tracks (First pass - without album references) -----
 export const mockTracks: Track[] = [
+  // The Midnight Waves tracks
   {
     id: 'track1',
     title: 'Midnight Dreams',
     artist: artist1,
-    album: undefined,
     duration: 235,
-    coverImage: '/images/track1.jpg',
-    lyrics: 'Lyrics for Midnight Dreams...\nVerse 1\nIn the midnight hour...',
+    coverImage: '/images/tracks/midnight-dreams.jpg',
+    lyrics: 'Midnight dreams...\nVerse 1\nIn the midnight hour...',
     listeners: 15200,
     streams: 456000,
     audioUrl: '/audio/track1.mp3',
@@ -99,40 +176,11 @@ export const mockTracks: Track[] = [
     releaseDate: new Date('2024-01-15'),
   },
   {
-    id: 'track2',
-    title: 'Starlight',
-    artist: artist2,
-    album: undefined,
-    duration: 198,
-    coverImage: '/images/track2.jpg',
-    lyrics: 'Lyrics for Starlight...\nVerse 1\nStarlight shines so bright...',
-    listeners: 9800,
-    streams: 287000,
-    audioUrl: '/audio/track2.mp3',
-    genre: ['Pop', 'Soul'],
-    releaseDate: new Date('2024-02-01'),
-  },
-  {
-    id: 'track3',
-    title: 'Electric Feel',
-    artist: artist3,
-    album: undefined,
-    duration: 267,
-    coverImage: '/images/track3.jpg',
-    lyrics: 'Lyrics for Electric Feel...\nVerse 1\nElectric current flows...',
-    listeners: 3400,
-    streams: 98000,
-    audioUrl: '/audio/track3.mp3',
-    genre: ['Electronic', 'Synthwave'],
-    releaseDate: new Date('2024-03-10'),
-  },
-  {
     id: 'track4',
     title: 'Ocean Waves',
     artist: artist1,
-    album: undefined,
     duration: 210,
-    coverImage: '/images/track4.jpg',
+    coverImage: '/images/tracks/ocean-waves.jpg',
     lyrics: 'Ocean waves crashing...',
     listeners: 21000,
     streams: 678000,
@@ -141,12 +189,38 @@ export const mockTracks: Track[] = [
     releaseDate: new Date('2024-04-01'),
   },
   {
+    id: 'track7',
+    title: 'Starlight Serenade',
+    artist: artist1,
+    duration: 198,
+    coverImage: '/images/tracks/starlight-serenade.jpg',
+    lyrics: 'Under the starlight...',
+    listeners: 9800,
+    streams: 287000,
+    audioUrl: '/audio/track7.mp3',
+    genre: ['Indie Rock', 'Dream Pop'],
+    releaseDate: new Date('2024-06-15'),
+  },
+  // Luna Star tracks
+  {
+    id: 'track2',
+    title: 'Starlight',
+    artist: artist2,
+    duration: 198,
+    coverImage: '/images/tracks/starlight.jpg',
+    lyrics: 'Starlight shines so bright...',
+    listeners: 9800,
+    streams: 287000,
+    audioUrl: '/audio/track2.mp3',
+    genre: ['Pop', 'Soul'],
+    releaseDate: new Date('2024-02-01'),
+  },
+  {
     id: 'track5',
     title: 'Heartbeat',
     artist: artist2,
-    album: undefined,
     duration: 185,
-    coverImage: '/images/track5.jpg',
+    coverImage: '/images/tracks/heartbeat.jpg',
     lyrics: 'Heartbeat keeps me alive...',
     listeners: 5600,
     streams: 156000,
@@ -154,133 +228,283 @@ export const mockTracks: Track[] = [
     genre: ['Pop', 'Ballad'],
     releaseDate: new Date('2024-04-15'),
   },
+  {
+    id: 'track8',
+    title: 'Golden Hour',
+    artist: artist2,
+    duration: 212,
+    coverImage: '/images/tracks/golden-hour.jpg',
+    lyrics: 'In the golden hour light...',
+    listeners: 13400,
+    streams: 398000,
+    audioUrl: '/audio/track8.mp3',
+    genre: ['Pop', 'R&B'],
+    releaseDate: new Date('2024-07-01'),
+  },
+  // Neon Pulse tracks
+  {
+    id: 'track3',
+    title: 'Electric Feel',
+    artist: artist3,
+    duration: 267,
+    coverImage: '/images/tracks/electric-feel.jpg',
+    lyrics: 'Electric current flows...',
+    listeners: 3400,
+    streams: 98000,
+    audioUrl: '/audio/track3.mp3',
+    genre: ['Electronic', 'Synthwave'],
+    releaseDate: new Date('2024-03-10'),
+  },
+  {
+    id: 'track6',
+    title: 'Neon Dreams',
+    artist: artist3,
+    duration: 220,
+    coverImage: '/images/tracks/neon-dreams.jpg',
+    lyrics: 'Neon lights in the dark...',
+    listeners: 1800,
+    streams: 45000,
+    audioUrl: '/audio/track6.mp3',
+    genre: ['Electronic', 'Ambient'],
+    releaseDate: new Date('2024-05-01'),
+  },
+  {
+    id: 'track9',
+    title: 'Pulse',
+    artist: artist3,
+    duration: 245,
+    coverImage: '/images/tracks/pulse.jpg',
+    lyrics: 'Feel the pulse...',
+    listeners: 2600,
+    streams: 78000,
+    audioUrl: '/audio/track9.mp3',
+    genre: ['Electronic', 'House'],
+    releaseDate: new Date('2024-08-20'),
+  },
+  // Golden Echo tracks
+  {
+    id: 'track10',
+    title: 'Homeward Bound',
+    artist: artist4,
+    duration: 195,
+    coverImage: '/images/tracks/homeward-bound.jpg',
+    lyrics: 'Walking home...',
+    listeners: 8700,
+    streams: 234000,
+    audioUrl: '/audio/track10.mp3',
+    genre: ['Folk', 'Acoustic'],
+    releaseDate: new Date('2024-03-20'),
+  },
+  {
+    id: 'track11',
+    title: 'Morning Light',
+    artist: artist4,
+    duration: 178,
+    coverImage: '/images/tracks/morning-light.jpg',
+    lyrics: 'Morning light breaks through...',
+    listeners: 6200,
+    streams: 189000,
+    audioUrl: '/audio/track11.mp3',
+    genre: ['Folk', 'Indie'],
+    releaseDate: new Date('2024-06-10'),
+  },
+  // Crimson Tide tracks
+  {
+    id: 'track12',
+    title: 'Rising Storm',
+    artist: artist5,
+    duration: 245,
+    coverImage: '/images/tracks/rising-storm.jpg',
+    lyrics: 'Storm is rising...',
+    listeners: 11200,
+    streams: 345000,
+    audioUrl: '/audio/track12.mp3',
+    genre: ['Metal', 'Rock'],
+    releaseDate: new Date('2024-02-15'),
+  },
+  {
+    id: 'track13',
+    title: 'Iron Will',
+    artist: artist5,
+    duration: 230,
+    coverImage: '/images/tracks/iron-will.jpg',
+    lyrics: 'Iron will never breaks...',
+    listeners: 8900,
+    streams: 267000,
+    audioUrl: '/audio/track13.mp3',
+    genre: ['Metal', 'Thrash'],
+    releaseDate: new Date('2024-05-20'),
+  },
+  // Velvet Sky tracks
+  {
+    id: 'track14',
+    title: 'Ethereal',
+    artist: artist6,
+    duration: 210,
+    coverImage: '/images/tracks/ethereal.jpg',
+    lyrics: 'Ethereal dreams...',
+    listeners: 3400,
+    streams: 102000,
+    audioUrl: '/audio/track14.mp3',
+    genre: ['Dream Pop', 'Ambient'],
+    releaseDate: new Date('2024-04-05'),
+  },
+  {
+    id: 'track15',
+    title: 'Velvet Night',
+    artist: artist6,
+    duration: 198,
+    coverImage: '/images/tracks/velvet-night.jpg',
+    lyrics: 'Velvet night surrounds me...',
+    listeners: 2800,
+    streams: 87000,
+    audioUrl: '/audio/track15.mp3',
+    genre: ['Dream Pop', 'Shoegaze'],
+    releaseDate: new Date('2024-07-15'),
+  },
 ];
 
-// Mock Albums
+// ----- Mock Albums -----
 export const mockAlbums: Album[] = [
   {
     id: 'album1',
     title: 'Dreamscape',
     artist: artist1,
-    coverImage: '/images/album1.jpg',
+    coverImage: '/images/albums/dreamscape.jpg',
     releaseDate: new Date('2024-01-15'),
     genre: ['Indie Rock', 'Alternative'],
-    tracks: [mockTracks[0], mockTracks[3]],
+    tracks: [mockTracks[0], mockTracks[3], mockTracks[6]],
+    description: 'A journey through dreams and memories, Dreamscape is the debut album from The Midnight Waves, featuring 10 tracks of lush indie rock.',
+    label: 'Wave Records',
   },
   {
     id: 'album2',
     title: 'Soul Journey',
     artist: artist2,
-    coverImage: '/images/album2.jpg',
+    coverImage: '/images/albums/soul-journey.jpg',
     releaseDate: new Date('2024-02-01'),
     genre: ['Pop', 'Soul'],
-    tracks: [mockTracks[1], mockTracks[4]],
+    tracks: [mockTracks[1], mockTracks[4], mockTracks[7]],
+    description: 'Soul Journey is a deeply personal album from Luna Star, exploring themes of love, identity, and self-discovery through soulful pop melodies.',
+    label: 'Star Music',
   },
   {
     id: 'album3',
     title: 'Neon Dreams',
     artist: artist3,
-    coverImage: '/images/album3.jpg',
+    coverImage: '/images/albums/neon-dreams.jpg',
     releaseDate: new Date('2024-03-10'),
     genre: ['Electronic', 'Synthwave'],
-    tracks: [mockTracks[2]],
+    tracks: [mockTracks[2], mockTracks[5], mockTracks[8]],
+    description: 'An immersive electronic journey through neon-lit cityscapes and dreamy synth landscapes.',
+    label: 'Pulse Records',
+  },
+  {
+    id: 'album4',
+    title: 'Golden Echoes',
+    artist: artist4,
+    coverImage: '/images/albums/golden-echoes.jpg',
+    releaseDate: new Date('2024-03-20'),
+    genre: ['Folk', 'Acoustic'],
+    tracks: [mockTracks[9], mockTracks[10]],
+    description: 'Golden Echoes is a warm, intimate collection of folk songs about home, family, and finding your way.',
+    label: 'Echo Records',
+  },
+  {
+    id: 'album5',
+    title: 'Crimson Storm',
+    artist: artist5,
+    coverImage: '/images/albums/crimson-storm.jpg',
+    releaseDate: new Date('2024-02-15'),
+    genre: ['Metal', 'Rock'],
+    tracks: [mockTracks[11], mockTracks[12]],
+    description: 'Crimson Storm is a powerful metal album that showcases the band\'s signature heavy riffs and intense energy.',
+    label: 'Storm Records',
+  },
+  {
+    id: 'album6',
+    title: 'Velvet Dreams',
+    artist: artist6,
+    coverImage: '/images/albums/velvet-dreams.jpg',
+    releaseDate: new Date('2024-04-05'),
+    genre: ['Dream Pop', 'Ambient'],
+    tracks: [mockTracks[13], mockTracks[14]],
+    description: 'A dreamy, atmospheric collection of dream pop songs perfect for late-night listening.',
+    label: 'Velvet Records',
   },
 ];
 
-// Assign albums to tracks
-mockTracks[0].album = mockAlbums[0];
-mockTracks[1].album = mockAlbums[1];
-mockTracks[2].album = mockAlbums[2];
-mockTracks[3].album = mockAlbums[0];
-mockTracks[4].album = mockAlbums[1];
+// ----- Assign album references to tracks -----
+mockTracks[0].album = mockAlbums[0]; // Midnight Dreams -> Dreamscape
+mockTracks[3].album = mockAlbums[0]; // Ocean Waves -> Dreamscape
+mockTracks[6].album = mockAlbums[0]; // Starlight Serenade -> Dreamscape
+mockTracks[1].album = mockAlbums[1]; // Starlight -> Soul Journey
+mockTracks[4].album = mockAlbums[1]; // Heartbeat -> Soul Journey
+mockTracks[7].album = mockAlbums[1]; // Golden Hour -> Soul Journey
+mockTracks[2].album = mockAlbums[2]; // Electric Feel -> Neon Dreams
+mockTracks[5].album = mockAlbums[2]; // Neon Dreams -> Neon Dreams
+mockTracks[8].album = mockAlbums[2]; // Pulse -> Neon Dreams
+mockTracks[9].album = mockAlbums[3]; // Homeward Bound -> Golden Echoes
+mockTracks[10].album = mockAlbums[3]; // Morning Light -> Golden Echoes
+mockTracks[11].album = mockAlbums[4]; // Rising Storm -> Crimson Storm
+mockTracks[12].album = mockAlbums[4]; // Iron Will -> Crimson Storm
+mockTracks[13].album = mockAlbums[5]; // Ethereal -> Velvet Dreams
+mockTracks[14].album = mockAlbums[5]; // Velvet Night -> Velvet Dreams
 
-// Mock Playlists
+// ----- Mock Users -----
+export const mockUsers: User[] = [
+  {
+    id: 'user1',
+    username: 'johndoe',
+    displayName: 'John Doe',
+    email: 'john@example.com',
+    profileImage: '/images/users/john.jpg',
+    subscriptionType: 'gold',
+    role: 'listener',
+    followers: 234,
+    following: 45,
+    dailyStreams: 28,
+    birthDate: '1995-03-15',
+    gender: 'male',
+  },
+  // ... more users
+];
+
+// ----- Mock Playlists -----
 export const mockPlaylists: Playlist[] = [
   {
     id: 'playlist1',
     name: 'Chill Vibes',
     creator: mockUsers[0],
     tracks: [mockTracks[0], mockTracks[1], mockTracks[4]],
-    coverImage: '/images/playlist1.jpg',
+    coverImage: '/images/playlists/chill-vibes.jpg',
     createdAt: new Date('2024-02-10'),
+    description: 'Relaxing tracks for a chill afternoon.',
   },
-  {
-    id: 'playlist2',
-    name: 'Workout Mix',
-    creator: mockUsers[0],
-    tracks: [mockTracks[2], mockTracks[3]],
-    coverImage: '/images/playlist2.jpg',
-    createdAt: new Date('2024-03-05'),
-  },
-  {
-    id: 'playlist3',
-    name: 'Study Session',
-    creator: mockUsers[2],
-    tracks: [mockTracks[1], mockTracks[4]],
-    createdAt: new Date('2024-03-20'),
-  },
+  // ... more playlists
 ];
 
-// Mock Notifications
-export const mockNotifications: Notification[] = [
-  {
-    id: 'notif1',
-    userId: 'user1',
-    message: 'Your subscription will expire in 3 days. Renew now!',
-    read: false,
-    createdAt: new Date('2024-03-20'),
-    type: 'subscription',
-  },
-  {
-    id: 'notif2',
-    userId: 'user1',
-    message: 'New release from The Midnight Waves: "Dreamscape"',
-    read: false,
-    createdAt: new Date('2024-03-19'),
-    type: 'new_release',
-    link: '/albums/album1',
-  },
-  {
-    id: 'notif3',
-    userId: 'user1',
-    message: 'Your artist account has been verified!',
-    read: true,
-    createdAt: new Date('2024-03-15'),
-    type: 'approval',
-  },
-  {
-    id: 'notif4',
-    userId: 'user1',
-    message: 'New ticket response from support team',
-    read: true,
-    createdAt: new Date('2024-03-14'),
-    type: 'ticket',
-  },
-];
-
-// Helper functions
-export const getCurrentUser = (): User => mockUsers[0];
-
-export const getUserById = (id: string): User | undefined => {
-  return mockUsers.find(user => user.id === id);
-};
-
+// ----- Helper Functions -----
 export const getArtistById = (id: string): Artist | undefined => {
-  return mockArtists.find(artist => artist.id === id);
+  return mockArtists.find((artist) => artist.id === id);
 };
 
 export const getAlbumById = (id: string): Album | undefined => {
-  return mockAlbums.find(album => album.id === id);
+  return mockAlbums.find((album) => album.id === id);
 };
 
 export const getTrackById = (id: string): Track | undefined => {
-  return mockTracks.find(track => track.id === id);
+  return mockTracks.find((track) => track.id === id);
 };
 
-export const getPlaylistById = (id: string): Playlist | undefined => {
-  return mockPlaylists.find(playlist => playlist.id === id);
+export const getTracksByArtistId = (artistId: string): Track[] => {
+  return mockTracks.filter((track) => track.artist.id === artistId);
 };
 
-export const getNotificationsForUser = (userId: string): Notification[] => {
-  return mockNotifications.filter(notif => notif.userId === userId);
+export const getAlbumsByArtistId = (artistId: string): Album[] => {
+  return mockAlbums.filter((album) => album.artist.id === artistId);
+};
+
+export const getTracksByAlbumId = (albumId: string): Track[] => {
+  return mockTracks.filter((track) => track.album?.id === albumId);
 };

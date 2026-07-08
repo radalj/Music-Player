@@ -1,7 +1,8 @@
 'use client';
+
 import { useAuth } from '@/context/AuthContext';
 import { Sidebar } from '@/components/common/Sidebar';
-import { Player } from '@/components/common/Player';
+import Player from '@/components/common/Player';
 import { mockPlaylists, mockAlbums, mockTracks } from '@/utils/mockData';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,11 +12,18 @@ import { useRouter } from 'next/navigation';
 export default function HomePage() {
   const { user } = useAuth();
   const router = useRouter();
+  
+  // ✅ Fix hydration mismatch
+  const [isClient, setIsClient] = useState(false);
   const [recentPlaylists, setRecentPlaylists] = useState(mockPlaylists.slice(0, 3));
   const [latestAlbums, setLatestAlbums] = useState(mockAlbums.slice(0, 4));
   const [popularTracks, setPopularTracks] = useState(mockTracks.slice(0, 5));
   const [isGoldUser, setIsGoldUser] = useState(false);
   const [isPending, setIsPending] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Only redirect if not logged in
   useEffect(() => {
@@ -26,6 +34,10 @@ export default function HomePage() {
       setIsPending(user.role === 'pending_artist');
     }
   }, [user, router]);
+
+  if (!isClient) {
+    return null;
+  }
 
   if (!user) {
     return null;
@@ -115,8 +127,6 @@ export default function HomePage() {
           {isPending ? (
             /* ----- Pending Artist: Show limited content ----- */
             <>
-              {/* Gold Early Access (hidden for pending) */}
-              {/* Show a welcome message instead of full content */}
               <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-8 text-center">
                 <p className="text-text-secondary text-lg">🎵 Welcome to MusicApp</p>
                 <p className="text-text-secondary text-sm mt-2">
@@ -126,7 +136,6 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Still show some content (optional) */}
               <section className="mt-10">
                 <h2 className="text-xl font-bold text-white mb-4">🔥 Popular Tracks</h2>
                 <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 overflow-hidden">
