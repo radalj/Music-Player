@@ -9,7 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ---------- توابع کمکی برای مدیریت کاربران در localStorage ----------
 const getRegisteredUsers = (): User[] => {

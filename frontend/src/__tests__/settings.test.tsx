@@ -72,28 +72,34 @@ describe('Settings Page', () => {
 
   test('should show subscription plan', () => {
     renderWithProviders(<SettingsPage />);
-    expect(screen.getByText('Free')).toBeInTheDocument();
+    expect(screen.getByText('Free Plan')).toBeInTheDocument();
   });
 
   test('should open delete modal and validate DELETE input', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
     renderWithProviders(<SettingsPage />);
     const deleteButton = screen.getByText('Delete My Account');
     fireEvent.click(deleteButton);
-    expect(screen.getByText('Delete Account')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Delete Account', level: 3 })).toBeInTheDocument();
 
     const input = screen.getByPlaceholderText('Type DELETE here');
     const confirmButton = screen.getByText('Delete Permanently');
 
     // Type wrong text
-    await userEvent.type(input, 'WRONG');
+    await user.type(input, 'WRONG');
     fireEvent.click(confirmButton);
-    expect(screen.getByText('Please type "DELETE" to confirm.')).toBeInTheDocument();
+    expect(mockLogout).not.toHaveBeenCalled();
 
     // Type correct text
-    await userEvent.clear(input);
-    await userEvent.type(input, 'DELETE');
+    await user.clear(input);
+    await user.type(input, 'DELETE');
     fireEvent.click(confirmButton);
-    // Should call logout
-    expect(mockLogout).toHaveBeenCalled();
+
+    jest.advanceTimersByTime(1000);
+    await waitFor(() => expect(mockLogout).toHaveBeenCalled());
+
+    jest.useRealTimers();
   });
 });

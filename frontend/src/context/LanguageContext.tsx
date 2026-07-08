@@ -14,7 +14,7 @@ interface LanguageContextType {
   t: (key: string, params?: Record<string, string | number>) => string; // ✅ اضافه شدن params
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 const translations: Record<Language, Translations> = { en, fa };
 
