@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   HomeIcon,
   UserIcon,
@@ -23,16 +24,17 @@ import {
 export const Sidebar = () => {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
 
   const navItems = [
-    { icon: HomeIcon, iconSolid: HomeIconSolid, label: 'Home', href: '/home' },
-    { icon: UserIcon, iconSolid: UserIconSolid, label: 'Profile', href: '/profile' },
-    { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: 'Playlists', href: '/playlists' },
-    { icon: MusicalNoteIcon, iconSolid: MusicalNoteIconSolid, label: 'Albums & Songs', href: '/albums' },
-    { icon: BellIcon, iconSolid: BellIconSolid, label: 'Notifications', href: '/notifications' },
-    { icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, label: 'Settings', href: '/settings' },
+    { icon: HomeIcon, iconSolid: HomeIconSolid, label: t('sidebar.home'), href: '/home' },
+    { icon: UserIcon, iconSolid: UserIconSolid, label: t('sidebar.profile'), href: '/profile' },
+    { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: t('sidebar.playlists'), href: '/playlists' },
+    { icon: MusicalNoteIcon, iconSolid: MusicalNoteIconSolid, label: t('sidebar.albums_songs'), href: '/albums' },
+    { icon: BellIcon, iconSolid: BellIconSolid, label: t('sidebar.notifications'), href: '/notifications' },
+    { icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, label: t('sidebar.settings'), href: '/settings' },
   ];
 
   // Add admin/artist dashboard if applicable
@@ -41,7 +43,7 @@ export const Sidebar = () => {
     extraItems.push({
       icon: ChartBarIcon,
       iconSolid: ChartBarIcon,
-      label: 'Artist Dashboard',
+      label: t('sidebar.artist_dashboard'),
       href: '/artist-dashboard',
     });
   }
@@ -49,18 +51,29 @@ export const Sidebar = () => {
     extraItems.push({
       icon: ChartBarIcon,
       iconSolid: ChartBarIcon,
-      label: 'Admin Dashboard',
+      label: t('sidebar.admin_dashboard'),
       href: '/admin/dashboard',
     });
   }
 
   const allItems = [...navItems, ...extraItems];
 
+  // Determine subscription label based on user role
+  let subscriptionLabel = t('sidebar.free_plan');
+  if (user?.role === 'listener') {
+    if (user.subscriptionType === 'gold') subscriptionLabel = t('sidebar.gold_plan');
+    else if (user.subscriptionType === 'silver') subscriptionLabel = t('sidebar.silver_plan');
+    else subscriptionLabel = t('sidebar.free_plan');
+  } else {
+    // For non-listener roles, don't show subscription type
+    subscriptionLabel = '';
+  }
+
   return (
     <aside className="w-64 bg-[#0a0a0a] p-4 flex flex-col border-r border-gray-800 flex-shrink-0 h-screen sticky top-0">
       {/* Logo */}
       <div className="text-2xl font-bold text-primary mb-8 flex items-center gap-2">
-        <span>🎵</span> MusicApp
+        <span>🎵</span> {t('sidebar.app_name')}
       </div>
 
       {/* Navigation */}
@@ -94,10 +107,12 @@ export const Sidebar = () => {
             {user?.displayName?.[0]?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate">{user?.displayName || 'Guest'}</p>
-            <p className="text-text-secondary text-xs capitalize">
-              {user?.subscriptionType || 'Free'} Plan
-            </p>
+            <p className="text-white text-sm font-medium truncate">{user?.displayName || t('sidebar.guest')}</p>
+            {subscriptionLabel && (
+              <p className="text-text-secondary text-xs capitalize">
+                {subscriptionLabel}
+              </p>
+            )}
           </div>
         </Link>
       </div>

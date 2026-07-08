@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import Image from 'next/image';
@@ -22,18 +23,10 @@ const formatDuration = (seconds: number) => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const getSubscriptionLabel = (type: string) => {
-  const map: Record<string, { label: string; color: string; icon: string }> = {
-    gold: { label: 'Gold', color: 'text-yellow-400', icon: '⭐' },
-    silver: { label: 'Silver', color: 'text-gray-300', icon: '🥈' },
-    free: { label: 'Free', color: 'text-text-secondary', icon: '🎵' },
-  };
-  return map[type] || map.free;
-};
-
 // ---------- Artist Profile Component ----------
 function ArtistProfileContent({ user, isPending }: { user: any; isPending: boolean }) {
   const { user: authUser } = useAuth();
+  const { t } = useLanguage();
   const artistId = user.id;
   const isOwnProfile = authUser?.id === artistId;
 
@@ -86,20 +79,19 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
   };
 
   const handleFollow = () => {
-    // ❌ Prevent self-follow
     if (isOwnProfile) {
-      toast.error('You cannot follow yourself.');
+      toast.error(t('profile.self_follow_error'));
       return;
     }
 
     if (isFollowing) {
       setFollowersCount(prev => Math.max(0, prev - 1));
       setIsFollowing(false);
-      toast.success('Unfollowed artist');
+      toast.success(t('profile.unfollowed_artist'));
     } else {
       setFollowersCount(prev => prev + 1);
       setIsFollowing(true);
-      toast.success('Following artist');
+      toast.success(t('profile.followed_artist'));
     }
   };
 
@@ -109,9 +101,9 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
         <div className="bg-red-600/20 border border-red-600/30 rounded-xl p-4 flex items-center gap-3">
           <ExclamationTriangleIcon className="w-6 h-6 text-red-400 flex-shrink-0" />
           <div>
-            <p className="text-red-400 font-medium">Your artist account is pending approval</p>
+            <p className="text-red-400 font-medium">{t('profile.pending_title')}</p>
             <p className="text-text-secondary text-sm">
-              You will be notified via email once approved. Some features are limited until then.
+              {t('profile.pending_desc')}
             </p>
           </div>
         </div>
@@ -135,14 +127,14 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
               {artistData.verified ? (
                 <span className="inline-flex items-center gap-1 text-blue-400 text-sm font-medium">
                   <CheckBadgeIcon className="w-5 h-5 text-blue-400" />
-                  Verified Artist
+                  {t('profile.verified_artist')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-yellow-400 text-sm font-medium">
-                  ⏳ Pending Verification
+                  ⏳ {t('profile.pending_verification')}
                 </span>
               )}
-              <span className="text-sm text-text-secondary">🎤 Artist</span>
+              <span className="text-sm text-text-secondary">🎤 {t('profile.artist')}</span>
             </div>
 
             <p className="text-text-secondary text-sm mt-2">{artistData.bio}</p>
@@ -150,15 +142,15 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
             <div className="flex gap-6 mt-3">
               <div>
                 <span className="text-white font-bold">{followersCount}</span>
-                <span className="text-text-secondary text-sm ml-1">Followers</span>
+                <span className="text-text-secondary text-sm ml-1">{t('profile.followers')}</span>
               </div>
               <div>
                 <span className="text-white font-bold">{artistData.totalListeners.toLocaleString()}</span>
-                <span className="text-text-secondary text-sm ml-1">Listeners</span>
+                <span className="text-text-secondary text-sm ml-1">{t('profile.listeners')}</span>
               </div>
               <div>
                 <span className="text-white font-bold">{artistData.totalStreams.toLocaleString()}</span>
-                <span className="text-text-secondary text-sm ml-1">Total Streams</span>
+                <span className="text-text-secondary text-sm ml-1">{t('profile.total_streams')}</span>
               </div>
             </div>
           </div>
@@ -172,7 +164,7 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
                   : 'bg-primary text-black hover:bg-opacity-80'
               }`}
             >
-              {isFollowing ? 'Unfollow' : 'Follow'}
+              {isFollowing ? t('profile.unfollow') : t('profile.follow')}
             </button>
           </div>
         </div>
@@ -180,9 +172,9 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6">
-          <h2 className="text-xl font-bold text-white mb-4">💿 Albums</h2>
+          <h2 className="text-xl font-bold text-white mb-4">💿 {t('profile.albums')}</h2>
           {artistData.albums.length === 0 ? (
-            <p className="text-text-secondary text-sm">No albums released yet.</p>
+            <p className="text-text-secondary text-sm">{t('profile.no_albums')}</p>
           ) : (
             <div className="space-y-3">
               {artistData.albums.map((album) => (
@@ -193,7 +185,7 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-medium truncate">{album.title}</p>
                     <p className="text-text-secondary text-sm truncate">{album.genre.join(', ')}</p>
-                    <p className="text-text-secondary text-xs">{album.tracks.length} tracks</p>
+                    <p className="text-text-secondary text-xs">{album.tracks.length} {t('profile.tracks_count')}</p>
                   </div>
                 </Link>
               ))}
@@ -202,9 +194,9 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
         </div>
 
         <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6">
-          <h2 className="text-xl font-bold text-white mb-4">🎵 Tracks</h2>
+          <h2 className="text-xl font-bold text-white mb-4">🎵 {t('profile.tracks')}</h2>
           {artistData.tracks.length === 0 ? (
-            <p className="text-text-secondary text-sm">No tracks released yet.</p>
+            <p className="text-text-secondary text-sm">{t('profile.no_tracks')}</p>
           ) : (
             <div className="space-y-2">
               {artistData.tracks.map((track, index) => (
@@ -215,7 +207,7 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{track.title}</p>
-                    <p className="text-text-secondary text-xs">{track.album?.title || 'Single'}</p>
+                    <p className="text-text-secondary text-xs">{track.album?.title || t('profile.single')}</p>
                   </div>
                   <div className="text-text-secondary text-xs font-mono">{formatDuration(track.duration)}</div>
                   <div className="text-text-secondary text-xs">👂 {track.listeners.toLocaleString()}</div>
@@ -228,23 +220,23 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
 
       {user.subscriptionType === 'gold' && (
         <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6">
-          <h2 className="text-xl font-bold text-white mb-4">📊 Gold Analytics</h2>
+          <h2 className="text-xl font-bold text-white mb-4">📊 {t('profile.gold_analytics')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
               <p className="text-2xl font-bold text-primary">{artistData.totalListeners.toLocaleString()}</p>
-              <p className="text-text-secondary text-sm">Total Listeners</p>
+              <p className="text-text-secondary text-sm">{t('profile.total_listeners')}</p>
             </div>
             <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
               <p className="text-2xl font-bold text-primary">{artistData.totalStreams.toLocaleString()}</p>
-              <p className="text-text-secondary text-sm">Total Streams</p>
+              <p className="text-text-secondary text-sm">{t('profile.total_streams')}</p>
             </div>
             <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
               <p className="text-2xl font-bold text-primary">{followersCount}</p>
-              <p className="text-text-secondary text-sm">Followers</p>
+              <p className="text-text-secondary text-sm">{t('profile.followers')}</p>
             </div>
             <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
               <p className="text-2xl font-bold text-primary">{artistData.tracks.length}</p>
-              <p className="text-text-secondary text-sm">Tracks Released</p>
+              <p className="text-text-secondary text-sm">{t('profile.tracks_released')}</p>
             </div>
           </div>
         </div>
@@ -256,9 +248,9 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
 // ---------- Main Profile Page ----------
 export default function ProfilePage() {
   const { user: authUser, logout } = useAuth();
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
 
-  // ✅ اصلاح: انتقال state به داخل تابع و استفاده از any
   const [localUser, setLocalUser] = useState<any>(authUser);
 
   useEffect(() => {
@@ -334,7 +326,7 @@ export default function ProfilePage() {
   if (!localUser) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
-        <p className="text-white">Please login</p>
+        <p className="text-white">{t('profile.login_required')}</p>
       </div>
     );
   }
@@ -356,30 +348,38 @@ export default function ProfilePage() {
   }
 
   // ---------- LISTENER (or admin, supporter) ----------
-  const subInfo = getSubscriptionLabel(localUser.subscriptionType);
+  // فقط برای شنونده برچسب اشتراک را محاسبه کن
+  const getSubscriptionLabel = (type: string) => {
+    const map: Record<string, { labelKey: string; color: string; icon: string }> = {
+      gold: { labelKey: 'subscription.gold', color: 'text-yellow-400', icon: '⭐' },
+      silver: { labelKey: 'subscription.silver', color: 'text-gray-300', icon: '🥈' },
+      free: { labelKey: 'subscription.free', color: 'text-text-secondary', icon: '🎵' },
+    };
+    return map[type] || map.free;
+  };
+
+  const subInfo = localUser.role === 'listener' ? getSubscriptionLabel(localUser.subscriptionType) : null;
 
   const handleFollow = () => {
-    // ❌ Prevent self-follow
     if (isOwnProfile) {
-      toast.error('You cannot follow yourself.');
+      toast.error(t('profile.self_follow_error'));
       return;
     }
 
     if (isFollowing) {
       setFollowersCount(prev => Math.max(0, prev - 1));
       setIsFollowing(false);
-      toast.success('Unfollowed');
+      toast.success(t('profile.unfollowed'));
     } else {
       setFollowersCount(prev => prev + 1);
       setIsFollowing(true);
-      toast.success('Followed');
+      toast.success(t('profile.followed'));
     }
   };
 
-  // ✅ اصلاح: مدیریت صحیح خطا و استفاده از let
   const handleSaveEdit = () => {
     if (!localUser) {
-      toast.error('User data not available');
+      toast.error(t('profile.user_data_unavailable'));
       return;
     }
 
@@ -409,7 +409,7 @@ export default function ProfilePage() {
       localStorage.setItem('registeredUsers', JSON.stringify(registered));
     }
 
-    toast.success('Profile updated successfully');
+    toast.success(t('profile.update_success'));
     setIsEditing(false);
   };
 
@@ -444,17 +444,21 @@ export default function ProfilePage() {
                     <span>{localUser.displayName?.[0]?.toUpperCase() || '?'}</span>
                   )}
                 </div>
-                <div className="absolute -bottom-1 -right-1 bg-[#1a1a1a] rounded-full p-1 border border-gray-700">
-                  <span className="text-lg">{subInfo.icon}</span>
-                </div>
+                {subInfo && (
+                  <div className="absolute -bottom-1 -right-1 bg-[#1a1a1a] rounded-full p-1 border border-gray-700">
+                    <span className="text-lg">{subInfo.icon}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 text-center md:text-right">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
                   <h1 className="text-2xl font-bold text-white">{localUser.displayName}</h1>
-                  <span className={`text-sm font-medium ${subInfo.color}`}>
-                    {subInfo.icon} {subInfo.label}
-                  </span>
+                  {subInfo && (
+                    <span className={`text-sm font-medium ${subInfo.color}`}>
+                      {subInfo.icon} {t(subInfo.labelKey)}
+                    </span>
+                  )}
                 </div>
                 <p className="text-text-secondary text-sm mt-1">@{localUser.username}</p>
                 <p className="text-text-secondary text-sm">{localUser.email}</p>
@@ -462,15 +466,15 @@ export default function ProfilePage() {
                 <div className="flex gap-6 mt-3">
                   <div>
                     <span className="text-white font-bold">{followersCount}</span>
-                    <span className="text-text-secondary text-sm ml-1">Followers</span>
+                    <span className="text-text-secondary text-sm ml-1">{t('profile.followers')}</span>
                   </div>
                   <div>
                     <span className="text-white font-bold">{localUser.following}</span>
-                    <span className="text-text-secondary text-sm ml-1">Following</span>
+                    <span className="text-text-secondary text-sm ml-1">{t('profile.following')}</span>
                   </div>
                   <div>
                     <span className="text-white font-bold">{localUser.dailyStreams}</span>
-                    <span className="text-text-secondary text-sm ml-1">Daily Streams</span>
+                    <span className="text-text-secondary text-sm ml-1">{t('profile.daily_streams')}</span>
                   </div>
                 </div>
               </div>
@@ -484,19 +488,19 @@ export default function ProfilePage() {
                       : 'bg-primary text-black hover:bg-opacity-80'
                   }`}
                 >
-                  {isFollowing ? 'Unfollow' : 'Follow'}
+                  {isFollowing ? t('profile.unfollow') : t('profile.follow')}
                 </button>
                 <button
                   onClick={() => setIsEditing(true)}
                   className="px-6 py-2 rounded-full font-medium bg-[#2a2a2a] text-white border border-gray-600 hover:bg-[#333] transition"
                 >
-                  ✏️ Edit Profile
+                  ✏️ {t('profile.edit_profile')}
                 </button>
                 <button
                   onClick={handleLogout}
                   className="px-6 py-2 rounded-full font-medium bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 transition"
                 >
-                  🚪 Logout
+                  🚪 {t('profile.logout')}
                 </button>
               </div>
             </div>
@@ -504,67 +508,69 @@ export default function ProfilePage() {
 
           {isEditing && (
             <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6 mb-6">
-              <h2 className="text-xl font-bold text-white mb-4">✏️ Edit Information</h2>
+              <h2 className="text-xl font-bold text-white mb-4">✏️ {t('profile.edit_information')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-text-secondary text-sm font-medium mb-1">Display Name</label>
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.display_name')}</label>
                   <input type="text" value={editData.displayName} onChange={(e) => setEditData({ ...editData, displayName: e.target.value })} className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition" />
                 </div>
                 <div>
-                  <label className="block text-text-secondary text-sm font-medium mb-1">Username</label>
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.username')}</label>
                   <input type="text" value={editData.username} className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 opacity-60" disabled />
-                  <p className="text-text-secondary text-xs mt-1">Username cannot be changed</p>
+                  <p className="text-text-secondary text-xs mt-1">{t('profile.username_cannot_change')}</p>
                 </div>
                 <div>
-                  <label className="block text-text-secondary text-sm font-medium mb-1">Email</label>
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.email')}</label>
                   <input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition" />
                 </div>
                 <div>
-                  <label className="block text-text-secondary text-sm font-medium mb-1">Birth Date</label>
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.birth_date')}</label>
                   <input type="date" value={editData.birthDate} onChange={(e) => setEditData({ ...editData, birthDate: e.target.value })} className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition" />
                 </div>
                 <div>
-                  <label className="block text-text-secondary text-sm font-medium mb-1">Gender</label>
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.gender')}</label>
                   <select value={editData.gender} onChange={(e) => setEditData({ ...editData, gender: e.target.value })} className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition">
-                    <option value="">Prefer not to say</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="non-binary">Non-binary</option>
-                    <option value="other">Other</option>
+                    <option value="">{t('profile.prefer_not_say')}</option>
+                    <option value="male">{t('profile.male')}</option>
+                    <option value="female">{t('profile.female')}</option>
+                    <option value="non-binary">{t('profile.non_binary')}</option>
+                    <option value="other">{t('profile.other')}</option>
                   </select>
                 </div>
                 <div className="flex items-end gap-3 md:col-span-2">
-                  <button onClick={handleSaveEdit} className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition">💾 Save Changes</button>
-                  <button onClick={handleCancelEdit} className="px-6 py-2 bg-[#2a2a2a] text-white border border-gray-600 rounded-full hover:bg-[#333] transition">❌ Cancel</button>
+                  <button onClick={handleSaveEdit} className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition">💾 {t('profile.save_changes')}</button>
+                  <button onClick={handleCancelEdit} className="px-6 py-2 bg-[#2a2a2a] text-white border border-gray-600 rounded-full hover:bg-[#333] transition">❌ {t('profile.cancel')}</button>
                 </div>
               </div>
               {localUser.subscriptionType === 'free' && (
                 <div className="mt-4 p-3 bg-yellow-600/10 border border-yellow-600/30 rounded-lg text-sm text-yellow-400">
-                  ⚠️ Free users cannot change profile picture. Upgrade to Gold or Silver in Settings.
+                  ⚠️ {t('profile.free_limitation')}
                 </div>
               )}
             </div>
           )}
 
           <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6">
-            <h2 className="text-xl font-bold text-white mb-4">📊 Activity Stats</h2>
+            <h2 className="text-xl font-bold text-white mb-4">📊 {t('profile.activity_stats')}</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
                 <p className="text-2xl font-bold text-primary">{followersCount}</p>
-                <p className="text-text-secondary text-sm">Followers</p>
+                <p className="text-text-secondary text-sm">{t('profile.followers')}</p>
               </div>
               <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
                 <p className="text-2xl font-bold text-primary">{localUser.following}</p>
-                <p className="text-text-secondary text-sm">Following</p>
+                <p className="text-text-secondary text-sm">{t('profile.following')}</p>
               </div>
               <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
                 <p className="text-2xl font-bold text-primary">{localUser.dailyStreams}</p>
-                <p className="text-text-secondary text-sm">Daily Streams</p>
+                <p className="text-text-secondary text-sm">{t('profile.daily_streams')}</p>
               </div>
-              <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
-                <p className="text-2xl font-bold text-primary">{localUser.subscriptionType === 'gold' ? '∞' : '🎵'}</p>
-                <p className="text-text-secondary text-sm">Subscription</p>
-              </div>
+              {localUser.role === 'listener' && (
+                <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-primary">{localUser.subscriptionType === 'gold' ? '∞' : '🎵'}</p>
+                  <p className="text-text-secondary text-sm">{t('profile.subscription')}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

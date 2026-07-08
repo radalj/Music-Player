@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import {
@@ -161,9 +162,9 @@ const generateMockNotifications = (userId: string, role: string): Notification[]
 // ---------- Main Component ----------
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [isClient, setIsClient] = useState(false);
 
-  // ✅ مقدار اولیه: از localStorage بخوان
   const [notifications, setNotifications] = useState<Notification[]>(() => {
     if (user) {
       return loadNotifications(user.id);
@@ -173,12 +174,10 @@ export default function NotificationsPage() {
 
   const [loading, setLoading] = useState(false);
 
-  // بعد از mount شدن، کلاینت را true می‌کنیم
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // اگر کاربر تغییر کرد (لاگین/خروج)، داده‌ها را بارگذاری کن
   useEffect(() => {
     if (user) {
       const initialized = isInitialized(user.id);
@@ -197,10 +196,8 @@ export default function NotificationsPage() {
     } else {
       setNotifications([]);
     }
-    // ✅ فقط زمانی که userId تغییر کند اجرا شود
   }, [user?.id]);
 
-  // ذخیره‌سازی هنگام تغییر
   useEffect(() => {
     if (!user) return;
     const all = JSON.parse(localStorage.getItem('notifications') || '[]');
@@ -213,21 +210,21 @@ export default function NotificationsPage() {
     setNotifications(prev =>
       prev.map(n => (n.id === id ? { ...n, read: true } : n))
     );
-    toast.success('Marked as read');
+    toast.success(t('notifications.marked_read'));
   };
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
-    toast.success('Notification deleted');
+    toast.success(t('notifications.deleted'));
   };
 
   const markAllAsRead = () => {
     if (notifications.length === 0) {
-      toast('No notifications to mark.');
+      toast(t('notifications.no_notifications_to_mark'));
       return;
     }
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    toast.success('All notifications marked as read');
+    toast.success(t('notifications.all_marked_read'));
   };
 
   const formatTime = (dateString: string) => {
@@ -238,10 +235,10 @@ export default function NotificationsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t('notifications.just_now');
+    if (diffMins < 60) return `${diffMins}${t('notifications.minutes_ago')}`;
+    if (diffHours < 24) return `${diffHours}${t('notifications.hours_ago')}`;
+    if (diffDays < 7) return `${diffDays}${t('notifications.days_ago')}`;
     return date.toLocaleDateString();
   };
 
@@ -252,7 +249,7 @@ export default function NotificationsPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
-        <p className="text-white">Please login to view your notifications.</p>
+        <p className="text-white">{t('notifications.login_required')}</p>
       </div>
     );
   }
@@ -267,10 +264,10 @@ export default function NotificationsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">🔔 Notifications</h1>
+              <h1 className="text-2xl font-bold text-white">🔔 {t('notifications.title')}</h1>
               {unreadCount > 0 && (
                 <span className="bg-primary text-black text-xs font-bold px-2 py-1 rounded-full">
-                  {unreadCount} new
+                  {unreadCount} {t('notifications.new')}
                 </span>
               )}
             </div>
@@ -284,7 +281,7 @@ export default function NotificationsPage() {
               }`}
             >
               <CheckIcon className="w-4 h-4" />
-              Read All
+              {t('notifications.read_all')}
             </button>
           </div>
 
@@ -296,9 +293,9 @@ export default function NotificationsPage() {
           ) : notifications.length === 0 ? (
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-12 text-center">
               <div className="text-5xl mb-4">📭</div>
-              <h2 className="text-xl font-semibold text-white mb-2">No notifications</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">{t('notifications.empty_title')}</h2>
               <p className="text-text-secondary">
-                You're all caught up! Check back later for updates.
+                {t('notifications.empty_desc')}
               </p>
             </div>
           ) : (
@@ -332,7 +329,7 @@ export default function NotificationsPage() {
                           href={notification.link}
                           className="inline-block mt-2 text-primary text-sm hover:underline"
                         >
-                          View Details →
+                          {t('notifications.view_details')} →
                         </Link>
                       )}
                     </div>
@@ -342,7 +339,7 @@ export default function NotificationsPage() {
                         <button
                           onClick={() => markAsRead(notification.id)}
                           className="p-1.5 text-text-secondary hover:text-primary transition rounded"
-                          title="Mark as read"
+                          title={t('notifications.mark_as_read_title')}
                         >
                           <CheckCircleIcon className="w-5 h-5" />
                         </button>
@@ -350,7 +347,7 @@ export default function NotificationsPage() {
                       <button
                         onClick={() => deleteNotification(notification.id)}
                         className="p-1.5 text-text-secondary hover:text-red-400 transition rounded"
-                        title="Delete"
+                        title={t('notifications.delete_title')}
                       >
                         <TrashIcon className="w-5 h-5" />
                       </button>

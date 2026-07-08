@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { mockPlaylists, mockAlbums, mockTracks } from '@/utils/mockData';
@@ -11,9 +12,9 @@ import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   
-  // ✅ Fix hydration mismatch
   const [isClient, setIsClient] = useState(false);
   const [recentPlaylists, setRecentPlaylists] = useState(mockPlaylists.slice(0, 3));
   const [latestAlbums, setLatestAlbums] = useState(mockAlbums.slice(0, 4));
@@ -25,7 +26,6 @@ export default function HomePage() {
     setIsClient(true);
   }, []);
 
-  // Only redirect if not logged in
   useEffect(() => {
     if (!user) {
       router.push('/login');
@@ -35,21 +35,14 @@ export default function HomePage() {
     }
   }, [user, router]);
 
-  if (!isClient) {
-    return null;
-  }
+  if (!isClient) return null;
+  if (!user) return null;
 
-  if (!user) {
-    return null;
-  }
-
-  // Logout
   const handleLogout = () => {
     localStorage.removeItem('user');
     window.location.href = '/login';
   };
 
-  // Format duration
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -68,14 +61,14 @@ export default function HomePage() {
               <div className="flex items-center gap-3">
                 <span className="text-2xl">⏳</span>
                 <div>
-                  <p className="text-yellow-400 font-medium">Your artist account is pending approval</p>
+                  <p className="text-yellow-400 font-medium">{t('home.pending_title')}</p>
                   <p className="text-text-secondary text-sm">
-                    You will be notified via email once approved. Some features are limited until then.
+                    {t('home.pending_desc')}
                   </p>
                 </div>
               </div>
               <Link href="/profile" className="text-primary text-sm hover:underline whitespace-nowrap">
-                Go to Profile →
+                {t('home.pending_link')} →
               </Link>
             </div>
           )}
@@ -101,28 +94,27 @@ export default function HomePage() {
                   {user?.displayName || 'User'}
                 </h1>
                 <p className="text-text-secondary text-sm">
-                  {isPending && '⏳ Pending Approval'}
-                  {user?.role === 'artist' && '🎤 Artist'}
-                  {user?.role === 'listener' && '🎧 Listener'}
-                  {user?.role === 'admin' && '🛠️ Admin'}
-                  {user?.role === 'supporter' && '🛡️ Supporter'}
+                  {isPending && `⏳ ${t('home.pending_badge')}`}
+                  {user?.role === 'artist' && `🎤 ${t('home.artist_badge')}`}
+                  {user?.role === 'listener' && `🎧 ${t('home.listener_badge')}`}
+                  {user?.role === 'admin' && `🛠️ ${t('home.admin_badge')}`}
+                  {user?.role === 'supporter' && `🛡️ ${t('home.supporter_badge')}`}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {/* ✅ نمایش اشتراک فقط برای شنوندگان */}
               {user.role === 'listener' && (
                 <span className="text-text-secondary text-sm hidden sm:inline">
-                  {user?.subscriptionType === 'gold' && '⭐ Gold'}
-                  {user?.subscriptionType === 'silver' && '🥈 Silver'}
-                  {user?.subscriptionType === 'free' && '🎵 Free'}
+                  {user?.subscriptionType === 'gold' && `⭐ ${t('home.gold_badge')}`}
+                  {user?.subscriptionType === 'silver' && `🥈 ${t('home.silver_badge')}`}
+                  {user?.subscriptionType === 'free' && `🎵 ${t('home.free_badge')}`}
                 </span>
               )}
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 rounded-md hover:bg-red-600/30 transition text-sm"
               >
-                Logout
+                {t('home.logout')}
               </button>
             </div>
           </div>
@@ -132,16 +124,14 @@ export default function HomePage() {
             /* ----- Pending Artist: Show limited content ----- */
             <>
               <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-8 text-center">
-                <p className="text-text-secondary text-lg">🎵 Welcome to MusicApp</p>
+                <p className="text-text-secondary text-lg">🎵 {t('home.welcome')}</p>
                 <p className="text-text-secondary text-sm mt-2">
-                  While your artist account is being reviewed, you can explore the platform.
-                  <br />
-                  Full artist features will be available after approval.
+                  {t('home.pending_welcome_desc')}
                 </p>
               </div>
 
               <section className="mt-10">
-                <h2 className="text-xl font-bold text-white mb-4">🔥 Popular Tracks</h2>
+                <h2 className="text-xl font-bold text-white mb-4">🔥 {t('home.popular_tracks')}</h2>
                 <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="divide-y divide-gray-800">
                     {popularTracks.slice(0, 3).map((track, index) => (
@@ -169,10 +159,10 @@ export default function HomePage() {
                 <div className="mb-8 bg-gradient-to-r from-yellow-600/20 to-yellow-800/20 border border-yellow-600/30 rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">⭐</span>
-                    <h2 className="text-lg font-bold text-white">Early Access to New Releases</h2>
+                    <h2 className="text-lg font-bold text-white">{t('home.gold_title')}</h2>
                   </div>
                   <p className="text-text-secondary text-sm mb-3">
-                    As a Gold user, you get early access to new music before anyone else.
+                    {t('home.gold_desc')}
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {mockTracks.slice(0, 3).map((track) => (
@@ -187,7 +177,7 @@ export default function HomePage() {
                           <p className="text-white text-sm font-medium truncate">{track.title}</p>
                           <p className="text-text-secondary text-xs truncate">{track.artist.name}</p>
                         </div>
-                        <span className="text-yellow-400 text-xs">New</span>
+                        <span className="text-yellow-400 text-xs">{t('home.gold_new_badge')}</span>
                       </div>
                     ))}
                   </div>
@@ -197,8 +187,8 @@ export default function HomePage() {
               {/* Recent Playlists */}
               <section className="mb-10">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">🎵 Recent Playlists</h2>
-                  <Link href="/playlist" className="text-primary text-sm hover:underline">View All</Link>
+                  <h2 className="text-xl font-bold text-white">🎵 {t('home.recent_playlists')}</h2>
+                  <Link href="/playlist" className="text-primary text-sm hover:underline">{t('home.view_all')}</Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recentPlaylists.map((playlist) => (
@@ -210,7 +200,7 @@ export default function HomePage() {
                         <div className="min-w-0 flex-1">
                           <p className="text-white font-medium truncate">{playlist.name}</p>
                           <p className="text-text-secondary text-sm truncate">{playlist.creator.displayName}</p>
-                          <p className="text-text-secondary text-xs">{playlist.tracks.length} tracks</p>
+                          <p className="text-text-secondary text-xs">{playlist.tracks.length} {t('home.tracks_count')}</p>
                         </div>
                       </div>
                     </div>
@@ -221,8 +211,8 @@ export default function HomePage() {
               {/* Latest Albums */}
               <section className="mb-10">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">💿 Latest Albums</h2>
-                  <Link href="/albums" className="text-primary text-sm hover:underline">View All</Link>
+                  <h2 className="text-xl font-bold text-white">💿 {t('home.latest_albums')}</h2>
+                  <Link href="/albums" className="text-primary text-sm hover:underline">{t('home.view_all')}</Link>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {latestAlbums.map((album) => (
@@ -232,7 +222,7 @@ export default function HomePage() {
                       </div>
                       <p className="text-white font-medium truncate text-sm">{album.title}</p>
                       <p className="text-text-secondary text-xs truncate">{album.artist.name}</p>
-                      <p className="text-text-secondary text-xs">{album.tracks.length} tracks</p>
+                      <p className="text-text-secondary text-xs">{album.tracks.length} {t('home.tracks_count')}</p>
                     </div>
                   ))}
                 </div>
@@ -241,8 +231,8 @@ export default function HomePage() {
               {/* Popular Tracks */}
               <section className="mb-10">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">🔥 Popular Tracks</h2>
-                  <Link href="/albums" className="text-primary text-sm hover:underline">View All</Link>
+                  <h2 className="text-xl font-bold text-white">🔥 {t('home.popular_tracks')}</h2>
+                  <Link href="/albums" className="text-primary text-sm hover:underline">{t('home.view_all')}</Link>
                 </div>
                 <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="divide-y divide-gray-800">
@@ -256,7 +246,7 @@ export default function HomePage() {
                           <p className="text-white font-medium truncate">{track.title}</p>
                           <p className="text-text-secondary text-sm truncate">{track.artist.name}</p>
                         </div>
-                        <div className="text-text-secondary text-sm hidden sm:block">{track.album?.title || 'Single'}</div>
+                        <div className="text-text-secondary text-sm hidden sm:block">{track.album?.title || t('home.single')}</div>
                         <div className="text-text-secondary text-sm font-mono">{formatDuration(track.duration)}</div>
                         <div className="text-text-secondary text-sm hidden md:block">👂 {track.listeners.toLocaleString()}</div>
                       </div>
