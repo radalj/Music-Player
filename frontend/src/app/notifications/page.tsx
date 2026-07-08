@@ -9,9 +9,7 @@ import {
   CheckCircleIcon,
   TrashIcon,
   CheckIcon,
-  XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
@@ -37,7 +35,6 @@ interface Notification {
 // ---------- Helper Functions ----------
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
-// Load notifications for a specific user
 const loadNotifications = (userId: string): Notification[] => {
   if (typeof window === 'undefined') return [];
   try {
@@ -54,19 +51,16 @@ const loadNotifications = (userId: string): Notification[] => {
   return [];
 };
 
-// Save all notifications (merge with other users)
 const saveAllNotifications = (allNotifications: Notification[]) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem('notifications', JSON.stringify(allNotifications));
 };
 
-// Check if we have already initialized notifications for this user
 const isInitialized = (userId: string): boolean => {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(`notifications_initialized_${userId}`) === 'true';
 };
 
-// Set initialization flag
 const setInitialized = (userId: string) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(`notifications_initialized_${userId}`, 'true');
@@ -167,74 +161,75 @@ const generateMockNotifications = (userId: string, role: string): Notification[]
 // ---------- Main Component ----------
 export default function NotificationsPage() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
 
-  // Load notifications on mount
+  // ✅ مقدار اولیه: از localStorage بخوان
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    if (user) {
+      return loadNotifications(user.id);
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  // بعد از mount شدن، کلاینت را true می‌کنیم
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    setIsClient(true);
+  }, []);
 
-    const initialized = isInitialized(user.id);
-    let userNotifs = loadNotifications(user.id);
+  // اگر کاربر تغییر کرد (لاگین/خروج)، داده‌ها را بارگذاری کن
+  useEffect(() => {
+    if (user) {
+      const initialized = isInitialized(user.id);
+      let userNotifs = loadNotifications(user.id);
 
-    if (!initialized) {
-      // First time: generate mock notifications
-      const mock = generateMockNotifications(user.id, user.role);
-      const all = JSON.parse(localStorage.getItem('notifications') || '[]');
-      const filtered = all.filter((n: Notification) => n.userId !== user.id);
-      saveAllNotifications([...filtered, ...mock]);
-      setInitialized(user.id);
-      userNotifs = mock;
+      if (!initialized) {
+        const mock = generateMockNotifications(user.id, user.role);
+        const all = JSON.parse(localStorage.getItem('notifications') || '[]');
+        const filtered = all.filter((n: Notification) => n.userId !== user.id);
+        saveAllNotifications([...filtered, ...mock]);
+        setInitialized(user.id);
+        userNotifs = mock;
+      }
+
+      setNotifications(userNotifs);
     } else {
-      // Already initialized, keep whatever is stored (could be empty)
-      // Do not regenerate mocks
+      setNotifications([]);
     }
+    // ✅ فقط زمانی که userId تغییر کند اجرا شود
+  }, [user?.id]);
 
-    setNotifications(userNotifs);
-    setLoading(false);
-  }, [user]);
-
-  // ✅ اصلاح: همیشه ذخیره کن (حتی اگر آرایه خالی باشد)
+  // ذخیره‌سازی هنگام تغییر
   useEffect(() => {
     if (!user) return;
-    // Merge with other users' notifications to avoid data loss
     const all = JSON.parse(localStorage.getItem('notifications') || '[]');
     const otherUsers = all.filter((n: Notification) => n.userId !== user.id);
     saveAllNotifications([...otherUsers, ...notifications]);
   }, [notifications, user]);
 
-  // Mark a single notification as read
+  // ---------- Handlers ----------
   const markAsRead = (id: string) => {
     setNotifications(prev =>
-      prev.map(n =>
-        n.id === id ? { ...n, read: true } : n
-      )
+      prev.map(n => (n.id === id ? { ...n, read: true } : n))
     );
     toast.success('Marked as read');
   };
 
-  // Delete a notification
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
     toast.success('Notification deleted');
   };
 
-  // Mark all as read
   const markAllAsRead = () => {
     if (notifications.length === 0) {
       toast('No notifications to mark.');
       return;
     }
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, read: true }))
-    );
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     toast.success('All notifications marked as read');
   };
 
-  // Format relative time
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -250,7 +245,10 @@ export default function NotificationsPage() {
     return date.toLocaleDateString();
   };
 
-  // If not logged in
+  if (!isClient) {
+    return null;
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -259,11 +257,10 @@ export default function NotificationsPage() {
     );
   }
 
-  // Count unread
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="flex h-screen bg-d  ark">
+    <div className="flex h-screen bg-dark">
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-28">
         <div className="max-w-4xl mx-auto p-6">
@@ -297,7 +294,6 @@ export default function NotificationsPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
             </div>
           ) : notifications.length === 0 ? (
-            // Empty State
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-12 text-center">
               <div className="text-5xl mb-4">📭</div>
               <h2 className="text-xl font-semibold text-white mb-2">No notifications</h2>
@@ -315,7 +311,6 @@ export default function NotificationsPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {/* Unread indicator (blue dot) */}
                     {!notification.read && (
                       <div className="flex-shrink-0 mt-1">
                         <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
@@ -342,7 +337,6 @@ export default function NotificationsPage() {
                       )}
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                       {!notification.read && (
                         <button

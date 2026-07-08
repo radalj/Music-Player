@@ -105,15 +105,19 @@ export default function HomePage() {
                   {user?.role === 'artist' && '🎤 Artist'}
                   {user?.role === 'listener' && '🎧 Listener'}
                   {user?.role === 'admin' && '🛠️ Admin'}
+                  {user?.role === 'supporter' && '🛡️ Supporter'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-text-secondary text-sm hidden sm:inline">
-                {user?.subscriptionType === 'gold' && '⭐ Gold'}
-                {user?.subscriptionType === 'silver' && '🥈 Silver'}
-                {user?.subscriptionType === 'free' && '🎵 Free'}
-              </span>
+              {/* ✅ نمایش اشتراک فقط برای شنوندگان */}
+              {user.role === 'listener' && (
+                <span className="text-text-secondary text-sm hidden sm:inline">
+                  {user?.subscriptionType === 'gold' && '⭐ Gold'}
+                  {user?.subscriptionType === 'silver' && '🥈 Silver'}
+                  {user?.subscriptionType === 'free' && '🎵 Free'}
+                </span>
+              )}
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600/20 text-red-400 border border-red-600/30 rounded-md hover:bg-red-600/30 transition text-sm"

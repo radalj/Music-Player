@@ -33,7 +33,9 @@ const getSubscriptionLabel = (type: string) => {
 
 // ---------- Artist Profile Component ----------
 function ArtistProfileContent({ user, isPending }: { user: any; isPending: boolean }) {
+  const { user: authUser } = useAuth();
   const artistId = user.id;
+  const isOwnProfile = authUser?.id === artistId;
 
   const getFollowStatus = (): boolean => {
     if (typeof window === 'undefined') return false;
@@ -84,6 +86,12 @@ function ArtistProfileContent({ user, isPending }: { user: any; isPending: boole
   };
 
   const handleFollow = () => {
+    // ❌ Prevent self-follow
+    if (isOwnProfile) {
+      toast.error('You cannot follow yourself.');
+      return;
+    }
+
     if (isFollowing) {
       setFollowersCount(prev => Math.max(0, prev - 1));
       setIsFollowing(false);
@@ -261,6 +269,7 @@ export default function ProfilePage() {
 
   // ---------- Follow state for listener ----------
   const userId = localUser?.id || '';
+  const isOwnProfile = authUser?.id === userId;
 
   const getFollowStatus = (): boolean => {
     if (typeof window === 'undefined') return false;
@@ -350,6 +359,12 @@ export default function ProfilePage() {
   const subInfo = getSubscriptionLabel(localUser.subscriptionType);
 
   const handleFollow = () => {
+    // ❌ Prevent self-follow
+    if (isOwnProfile) {
+      toast.error('You cannot follow yourself.');
+      return;
+    }
+
     if (isFollowing) {
       setFollowersCount(prev => Math.max(0, prev - 1));
       setIsFollowing(false);
