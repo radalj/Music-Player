@@ -90,13 +90,6 @@ export default function Player() {
   }
 
   function handleTrackEnd() {
-    if (repeatMode === 'one') {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
-      return;
-    }
 
     const nextIndex = getNextIndex();
     if (nextIndex === -1) {
@@ -196,6 +189,13 @@ export default function Player() {
     }
   }, [isPlaying]);
 
+  // ---------- Handle repeat one ----------
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    audioRef.current.loop = repeatMode === "one";
+  }, [repeatMode]);
+  
   // ---------- Handle volume ----------
   useEffect(() => {
     if (!audioRef.current) return;
