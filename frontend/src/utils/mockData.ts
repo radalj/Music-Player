@@ -493,8 +493,71 @@ export const getAlbumById = (id: string): Album | undefined => {
   return mockAlbums.find((album) => album.id === id);
 };
 
+// ✅ اصلاح تابع getTrackById برای پشتیبانی از آهنگ‌های ذخیره‌شده در localStorage
 export const getTrackById = (id: string): Track | undefined => {
-  return mockTracks.find((track) => track.id === id);
+  // ۱. جستجو در mockTracks
+  const mockTrack = mockTracks.find((track) => track.id === id);
+  if (mockTrack) return mockTrack;
+
+  // ۲. جستجو در localStorage برای آهنگ‌های هنرمند (کلیدهای artist_tracks_*)
+  if (typeof window !== 'undefined') {
+    const keys = Object.keys(localStorage);
+    for (const key of keys) {
+      if (key.startsWith('artist_tracks_')) {
+        try {
+          const storedTracks = JSON.parse(localStorage.getItem(key) || '[]');
+          const found = storedTracks.find((t: any) => t.id === id);
+          if (found) {
+            // تبدیل به فرمت Track با ساختار مورد انتظار
+            // پیدا کردن یا ساخت Artist
+            let artist: Artist;
+            if (typeof found.artist === 'string') {
+              // سعی می‌کنیم از mockArtists پیدا کنیم
+              const existingArtist = mockArtists.find(a => a.name === found.artist);
+              if (existingArtist) {
+                artist = existingArtist;
+              } else {
+                // ساخت Artist جدید با اطلاعات محدود
+                artist = {
+                  id: `artist_${found.id}`,
+                  name: found.artist,
+                  bio: '',
+                  verified: false,
+                  totalListeners: 0,
+                  totalStreams: 0,
+                };
+              }
+            } else {
+              artist = found.artist; // فرض می‌کنیم قبلاً به فرم Artist است
+            }
+
+            // ساخت Track
+            const track: Track = {
+              id: found.id,
+              title: found.title,
+              artist: artist,
+              duration: found.duration || 0,
+              coverImage: found.coverImage || '/images/default-cover.jpg',
+              lyrics: found.lyrics || '',
+              listeners: found.listeners || 0,
+              streams: found.streams || 0,
+              audioUrl: found.audioUrl || found.audioFile || '',
+              genre: found.genre ? [found.genre] : [],
+              releaseDate: found.createdAt ? new Date(found.createdAt) : new Date(),
+              album: found.album || undefined,
+              explicit: found.explicit || false,
+              featuredArtists: found.featuredArtists || [],
+            };
+            return track;
+          }
+        } catch (e) {
+          console.error('Error parsing localStorage in getTrackById:', e);
+        }
+      }
+    }
+  }
+
+  return undefined;
 };
 
 export const getTracksByArtistId = (artistId: string): Track[] => {
