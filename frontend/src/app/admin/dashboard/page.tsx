@@ -196,6 +196,11 @@ export default function AdminDashboardPage() {
   };
 
   const handleReplyTicket = (ticketId: string) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (ticket?.status === 'closed') {
+      toast.error('This ticket is closed and cannot be replied to.');
+      return;
+    }
     if (!replyText.trim()) {
       toast.error('Reply cannot be empty.');
       return;
@@ -335,7 +340,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             )}
-            {selectedTicket.status !== 'closed' && (
+            {selectedTicket.status !== 'closed' ? (
               <div className="mt-4">
                 <textarea
                   value={replyText}
@@ -347,7 +352,7 @@ export default function AdminDashboardPage() {
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={() => handleReplyTicket(selectedTicket.id)}
-                    className="px-4 py-2 bg-primary text-black font-medium rounded hover:bg-opacity-80 transition"
+                    className="px-4 py-2 bg-primary text-white font-medium rounded hover:bg-opacity-80 transition"
                   >
                     Send Reply
                   </button>
@@ -359,6 +364,8 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </div>
+            ) : (
+              <div className="mt-4 text-text-secondary">This ticket is closed.</div>
             )}
           </div>
         </div>
@@ -370,6 +377,7 @@ export default function AdminDashboardPage() {
         <table className="w-full text-sm text-left text-text-secondary">
           <thead className="text-xs uppercase bg-[#2a2a2a]">
             <tr>
+              <th className="px-4 py-2">Artist ID</th>
               <th className="px-4 py-2">Artist Name</th>
               <th className="px-4 py-2">Email</th>
               <th className="px-4 py-2">Submitted</th>
@@ -380,6 +388,7 @@ export default function AdminDashboardPage() {
           <tbody>
             {verifications.map((v) => (
               <tr key={v.id} className="border-b border-gray-800 hover:bg-[#1a1a1a]">
+                <td className="px-4 py-2">{v.id}</td>
                 <td className="px-4 py-2">{v.artistName}</td>
                 <td className="px-4 py-2">{v.email}</td>
                 <td className="px-4 py-2">{new Date(v.submittedAt).toLocaleDateString()}</td>
