@@ -111,5 +111,27 @@
     "playlist_full": "این پلی‌لیست پر است (حداکثر ۵۰ آهنگ).",
     "added_to_playlist": "\"{title}\" به پلی‌لیست اضافه شد",
     "removed_from_playlist": "\"{title}\" از پلی‌لیست حذف شد"
+  },
+  "player": {
+    "track_info": "اطلاعات آهنگ",
+    "title": "عنوان",
+    "artist": "هنرمند",
+    "album": "آلبوم",
+    "genre": "ژانر",
+    "release_year": "سال انتشار",
+    "duration": "مدت زمان",
+    "lyrics": "متن آهنگ"
+  },
+  "album": {
+    "total_duration": "مدت زمان کل",
+    "total_streams": "مجموع استریم‌ها",
+    "total_listeners": "مجموع شنوندگان"
+  }, 
+  "artist": {
+    "listeners": "شنونده",
+    "streams": "استریم‌",
+    "albums": "آلبوم‌",
+    "tracks": "آهنگ‌",
+    "popular_tracks": "آهنگ‌های محبوب"
   }
 }

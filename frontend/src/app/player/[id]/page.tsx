@@ -159,14 +159,14 @@ export default function PlayerPage() {
 
           {/* Track Info */}
           <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6">
-            <h2 className="text-lg font-bold text-white mb-4">About this track</h2>
+            <h2 className="text-lg font-bold text-white mb-4">{t('player.track_info')}</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-text-secondary">Title</p>
+                <p className="text-text-secondary">{t('player.title')}</p>
                 <p className="text-white">{track.title}</p>
               </div>
               <div>
-                <p className="text-text-secondary">Artist</p>
+                <p className="text-text-secondary">{t('player.artist')}</p>
                 <Link
                   href={`/artist/${track.artist.id}`}
                   className="text-primary hover:underline"
@@ -176,7 +176,7 @@ export default function PlayerPage() {
               </div>
               {track.album && (
                 <div>
-                  <p className="text-text-secondary">Album</p>
+                  <p className="text-text-secondary">{t('player.album')}</p>
                   <Link
                     href={`/album/${track.album.id}`}
                     className="text-primary hover:underline"
@@ -186,17 +186,17 @@ export default function PlayerPage() {
                 </div>
               )}
               <div>
-                <p className="text-text-secondary">Genre</p>
+                <p className="text-text-secondary">{t('player.genre')}</p>
                 <p className="text-white">{track.genre?.join(', ') || 'Various'}</p>
               </div>
               <div>
-                <p className="text-text-secondary">Release Date</p>
+                <p className="text-text-secondary">{t('player.release_year')}</p>
                 <p className="text-white">
                   {new Date(track.releaseDate).toLocaleDateString()}
                 </p>
               </div>
               <div>
-                <p className="text-text-secondary">Duration</p>
+                <p className="text-text-secondary">{t('player.duration')}</p>
                 <p className="text-white">
                   {Math.floor(track.duration / 60)}m {track.duration % 60}s
                 </p>
@@ -210,7 +210,7 @@ export default function PlayerPage() {
             </div>
             {track.lyrics && (
               <div className="mt-4">
-                <p className="text-text-secondary text-sm mb-2">Lyrics</p>
+                <p className="text-text-secondary text-sm mb-2">{t('player.lyrics')}</p>
                 <pre className="text-text-secondary text-sm whitespace-pre-wrap bg-[#2a2a2a] p-4 rounded-lg">
                   {track.lyrics}
                 </pre>

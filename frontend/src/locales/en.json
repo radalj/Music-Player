@@ -111,5 +111,27 @@
     "playlist_full": "This playlist is full (max 50 tracks).",
     "added_to_playlist": "Track added to playlist.",
     "removed_from_playlist": "Track removed from playlist."
+  },
+  "player": {
+    "track_info": "Track Info",
+    "title": "Title",
+    "artist": "Artist",
+    "album": "Album",
+    "genre": "Genre",
+    "release_year": "Release Year",
+    "duration": "Duration",
+    "lyrics": "Lyrics"
+  },
+  "album": {
+    "total_duration": "Total Duration",
+    "total_streams": "Total Streams",
+    "total_listeners": "Total Listeners"
+  },
+  "artist": {
+    "listeners": "Listeners",
+    "streams": "Streams",
+    "albums": "Albums",
+    "tracks": "Tracks",
+    "popular_tracks": "Popular Tracks"
   }
 }

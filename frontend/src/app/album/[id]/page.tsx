@@ -142,19 +142,19 @@ export default function AlbumPage() {
           {/* Album Stats */}
           <div className="mt-4 grid grid-cols-3 gap-4">
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-text-secondary text-xs">Total Duration</p>
+              <p className="text-text-secondary text-xs">{t('album.total_duration')}</p>
               <p className="text-white font-bold">
                 {Math.floor(totalDuration / 60)}m {totalDuration % 60}s
               </p>
             </div>
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-text-secondary text-xs">Total Streams</p>
+              <p className="text-text-secondary text-xs">{t('album.total_streams')}</p>
               <p className="text-white font-bold">
                 {tracks.reduce((sum, t) => sum + t.streams, 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-text-secondary text-xs">Total Listeners</p>
+              <p className="text-text-secondary text-xs">{t('album.total_listeners')}</p>
               <p className="text-white font-bold">{totalListeners.toLocaleString()}</p>
             </div>
           </div>

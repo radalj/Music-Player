@@ -112,10 +112,10 @@ export default function ArtistPage() {
                 </div>
                 <p className="text-text-secondary text-sm mt-1">{artist.bio}</p>
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-text-secondary">
-                  <span>👂 {followersCount.toLocaleString()} listeners</span>
-                  <span>▶️ {artist.totalStreams?.toLocaleString() || 0} streams</span>
-                  <span>💿 {albums.length} albums</span>
-                  <span>🎵 {tracks.length} tracks</span>
+                  <span>👂 {followersCount.toLocaleString()} {t('artist.listeners') || 'listeners'}</span>
+                  <span>▶️ {artist.totalStreams?.toLocaleString() || 0} {t('artist.streams') || 'streams'}</span>
+                  <span>💿 {albums.length} {t('artist.albums') || 'albums'}</span>
+                  <span>🎵 {tracks.length} {t('artist.tracks') || 'tracks'}</span>
                 </div>
                 {artist.socialLinks && (
                   <div className="flex gap-3 mt-3">
@@ -168,7 +168,7 @@ export default function ArtistPage() {
           {/* Albums Section */}
           {albums.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xl font-bold text-white mb-4">💿 Albums</h2>
+              <h2 className="text-xl font-bold text-white mb-4">💿 {t('artist.albums')}</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {albums.map((album) => (
                   <Link
@@ -196,7 +196,7 @@ export default function ArtistPage() {
           {/* Tracks Section */}
           {tracks.length > 0 && (
             <section>
-              <h2 className="text-xl font-bold text-white mb-4">🎵 Popular Tracks</h2>
+              <h2 className="text-xl font-bold text-white mb-4">🎵 {t('artist.popular_tracks')}</h2>
               <div className="space-y-2">
                 {tracks.slice(0, 10).map((track, index) => (
                   <div
