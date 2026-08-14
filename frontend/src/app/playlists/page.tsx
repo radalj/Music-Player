@@ -9,6 +9,38 @@ import { PlusIcon, PencilIcon, TrashIcon, MusicalNoteIcon } from '@heroicons/rea
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+// ---------- Helper برای دریافت توکن ----------
+const getToken = () => {
+  if (typeof window === 'undefined') return null;
+  const user = localStorage.getItem('user');
+  if (user) {
+    try {
+      const parsed = JSON.parse(user);
+      return parsed.access || null;
+    } catch {}
+  }
+  return null;
+};
+
+// ---------- Helper برای درخواست‌های احراز شده ----------
+const authFetch = async (url: string, options: RequestInit = {}) => {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_URL}${url}`, { ...options, headers });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.error || `HTTP ${response.status}`);
+  }
+  return response.json();
+};
+
 // ---------- Types ----------
 interface Track {
   id: string;
@@ -17,7 +49,7 @@ interface Track {
     id: string;
     name: string;
   };
-  coverImage?: string;
+  cover_image?: string;
   duration?: number;
 }
 
@@ -25,69 +57,62 @@ interface Playlist {
   id: string;
   name: string;
   tracks: Track[];
-  createdAt: string;
+  created_at: string;
 }
-
-// ---------- Helper ----------
-const generateId = () => Math.random().toString(36).substring(2, 10);
-
-// Load playlists from localStorage
-const loadPlaylists = (userId?: string): Playlist[] => {
-  if (typeof window === 'undefined') return [];
-  if (!userId) return [];
-  const key = `playlists_${userId}`;
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading playlists:', error);
-  }
-  return [];
-};
 
 // ---------- Main Page ----------
 export default function PlaylistsPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
 
-  const [playlists, setPlaylists] = useState<Playlist[]>(() =>
-    loadPlaylists(user?.id)
-  );
-
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [subscription, setSubscription] = useState<any>(null);
 
-  // Reload when user changes
+  // ---------- بارگذاری پلی‌لیست‌ها و اشتراک ----------
   useEffect(() => {
-    if (user) {
-      setPlaylists(loadPlaylists(user.id));
-    } else {
-      setPlaylists([]);
+    if (!user) {
+      setLoading(false);
+      return;
     }
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const token = getToken();
+        if (!token) throw new Error('No token');
+
+        // ۱. دریافت پلی‌لیست‌ها
+        const playlistsData = await authFetch('/playlists/');
+        setPlaylists(Array.isArray(playlistsData) ? playlistsData : playlistsData.results || []);
+
+        // ۲. دریافت اشتراک کاربر (برای محدودیت)
+        try {
+          const subData = await authFetch('/subscriptions/my-subscription/');
+          setSubscription(subData);
+        } catch (e) {
+          // اگر اشتراکی وجود نداشت، نادیده بگیر
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load playlists');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [user]);
 
-  // Auto-save to localStorage
-  useEffect(() => {
-    if (!user) return;
-    const key = `playlists_${user.id}`;
-    try {
-      localStorage.setItem(key, JSON.stringify(playlists));
-    } catch (error) {
-      console.error('Error saving playlists:', error);
-    }
-  }, [playlists, user]);
-
-  // ---------- Subscription limits ----------
+  // ---------- محاسبه محدودیت از روی اشتراک ----------
   const getMaxPlaylists = (): number => {
     if (!user) return 6;
-    switch (user.subscriptionType) {
+    // اگر اشتراک از API دریافت نشد، از user.subscriptionType استفاده کن (موقت)
+    const planName = subscription?.plan?.name || user.subscriptionType || 'free';
+    switch (planName) {
       case 'gold': return Infinity;
       case 'silver': return 100;
       default: return 6;
@@ -97,8 +122,8 @@ export default function PlaylistsPage() {
   const maxPlaylists = getMaxPlaylists();
   const canCreate = playlists.length < maxPlaylists;
 
-  // ---------- CRUD ----------
-  const handleCreate = () => {
+  // ---------- ایجاد پلی‌لیست جدید ----------
+  const handleCreate = async () => {
     if (!canCreate) {
       const limitMsg = maxPlaylists === Infinity ? t('playlists.unlimited') : maxPlaylists.toString();
       toast.error(t('playlists.limit_reached', { limit: limitMsg }));
@@ -108,41 +133,58 @@ export default function PlaylistsPage() {
       toast.error(t('playlists.name_empty'));
       return;
     }
-    const newPlaylist: Playlist = {
-      id: generateId(),
-      name: newPlaylistName.trim(),
-      tracks: [],
-      createdAt: new Date().toISOString(),
-    };
-    setPlaylists(prev => [...prev, newPlaylist]);
-    setNewPlaylistName('');
-    setIsCreating(false);
-    toast.success(t('playlists.created', { name: newPlaylistName.trim() }));
-  };
 
-  const handleDelete = (id: string) => {
-    if (confirm(t('playlists.delete_confirm'))) {
-      setPlaylists(prev => prev.filter(p => p.id !== id));
-      toast.success(t('playlists.deleted'));
+    try {
+      const data = await authFetch('/playlists/', {
+        method: 'POST',
+        body: JSON.stringify({ name: newPlaylistName.trim() }),
+      });
+      setPlaylists(prev => [data, ...prev]);
+      setNewPlaylistName('');
+      setIsCreating(false);
+      toast.success(t('playlists.created', { name: newPlaylistName.trim() }));
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create playlist');
     }
   };
 
+  // ---------- حذف پلی‌لیست ----------
+  const handleDelete = async (id: string) => {
+    if (!confirm(t('playlists.delete_confirm'))) return;
+    try {
+      await authFetch(`/playlists/${id}/`, { method: 'DELETE' });
+      setPlaylists(prev => prev.filter(p => p.id !== id));
+      toast.success(t('playlists.deleted'));
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete playlist');
+    }
+  };
+
+  // ---------- ویرایش نام پلی‌لیست ----------
   const handleStartEdit = (id: string, currentName: string) => {
     setEditingId(id);
     setEditName(currentName);
   };
 
-  const handleSaveEdit = (id: string) => {
+  const handleSaveEdit = async (id: string) => {
     if (!editName.trim()) {
       toast.error(t('playlists.name_empty'));
       return;
     }
-    setPlaylists(prev =>
-      prev.map(p => (p.id === id ? { ...p, name: editName.trim() } : p))
-    );
-    setEditingId(null);
-    setEditName('');
-    toast.success(t('playlists.renamed'));
+    try {
+      const data = await authFetch(`/playlists/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      setPlaylists(prev =>
+        prev.map(p => (p.id === id ? { ...p, name: editName.trim() } : p))
+      );
+      setEditingId(null);
+      setEditName('');
+      toast.success(t('playlists.renamed'));
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to rename playlist');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -150,11 +192,25 @@ export default function PlaylistsPage() {
     setEditName('');
   };
 
+  // ---------- افزودن آهنگ (هدایت به صفحه آلبوم‌ها) ----------
   const handleAddTracks = (playlistId: string) => {
     window.location.href = `/albums?addToPlaylist=${playlistId}`;
   };
 
-  // ---------- Render ----------
+  // ---------- در حال بارگذاری ----------
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-dark">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center pb-28">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+        </main>
+        <Player />
+      </div>
+    );
+  }
+
+  // ---------- کاربر لاگین نکرده ----------
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -296,7 +352,7 @@ export default function PlaylistsPage() {
                         <MusicalNoteIcon className="w-3 h-3" />
                         <span>{track.title}</span>
                         <span className="text-xs text-text-secondary/70">
-                          — {track.artist.name}
+                          — {track.artist?.name || 'Unknown artist'}
                         </span>
                       </div>
                     ))

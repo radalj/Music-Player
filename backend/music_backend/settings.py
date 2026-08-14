@@ -52,10 +52,12 @@ INSTALLED_APPS = [
     'apps.playlists',     # پلی‌لیست‌ها
     # 'apps.notifications', # اعلان‌ها
     'apps.subscriptions', # اشتراک‌ها
-    # 'apps.payments',      # پرداخت‌ها
+    'apps.payments',      # پرداخت‌ها
+    'apps.reports',
     # 'apps.admin_panel',   # پنل مدیریت
     # 'apps.tickets',       # تیکت‌های پشتیبانی
     # 'apps.financial',     # حسابرسی مالی
+    'corsheaders'
 ]
 
 # ============================================================================
@@ -122,6 +124,28 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+
+# ============================================================================
+# درگاه پرداخت
+# ============================================================================
+# تنظیمات زرین‌پال
+ZARINPAL_MERCHANT_ID = 'eaa46b01-819e-42ef-8a67-ba2bb7f69a32'  # برای sandbox از 'test' استفاده کنید
+ZARINPAL_SANDBOX = True  # برای محیط آزمایشی
+ZARINPAL_CALLBACK_URL = 'http://127.0.0.1:3000/api/payments/verify/'  # آدرس بازگشت
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'ERROR',  # یا 'WARNING' یا 'INFO'
+    },
+}
+# ============================================================================
 
 # ============================================================================
 # فایل‌های استاتیک و رسانه (Media)

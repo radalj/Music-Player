@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import { authService } from '@/services/auth';
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,13 +24,13 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      await login(email, password);
+      const data = await authService.login({ email, password });
+      localStorage.setItem('user', JSON.stringify(data));
       toast.success('Welcome back! 🎵');
       router.push('/home');
     } catch (error: any) {
-      toast.error(error.message || 'Invalid credentials. Please try again.');
+      toast.error(error.response?.data?.error || 'Invalid credentials');
     } finally {
       setLoading(false);
     }

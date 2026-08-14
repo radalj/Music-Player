@@ -9,4 +9,6 @@ urlpatterns = [
     path('api/music/', include('apps.music.urls')),
     path('api/playlists/', include('apps.playlists.urls')),
     path('api/subscriptions/', include('apps.subscriptions.urls')),
+    path('api/payments/', include('apps.payments.urls')),
+    path('api/reports/', include('apps.reports.urls')),
 ] +  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

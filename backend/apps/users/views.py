@@ -3,16 +3,17 @@ from rest_framework.response import Response
 from rest_framework import generics, permissions, status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
-from .models import User
-from .serializers import UserSerializer
-from apps.core.permissions import IsSelfOrAdmin  # اضافه شد
 from rest_framework.parsers import MultiPartParser, FormParser
+from .models import User, UserSettings
+from .serializers import UserSerializer, UserSettingsSerializer
+from apps.core.permissions import IsSelfOrAdmin
 
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
+
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -48,10 +49,22 @@ class LoginView(APIView):
             'user': UserSerializer(user).data
         })
 
+
 class ProfileView(generics.RetrieveUpdateAPIView):
     parser_classes = [MultiPartParser, FormParser]
     serializer_class = UserSerializer
-    permission_classes = [permissions.IsAuthenticated, IsSelfOrAdmin]  # ✅ اضافه شد
+    permission_classes = [permissions.IsAuthenticated, IsSelfOrAdmin]
 
     def get_object(self):
         return self.request.user
+
+
+class UserSettingsView(generics.RetrieveUpdateAPIView):
+    """دریافت و بروزرسانی تنظیمات کاربر (هماهنگ‌شده بین دستگاه‌ها)"""
+    serializer_class = UserSettingsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        # تنظیمات کاربر را دریافت می‌کند، در صورت نبود یک نمونه جدید با مقادیر پیش‌فرض ایجاد می‌کند
+        settings, created = UserSettings.objects.get_or_create(user=self.request.user)
+        return settings

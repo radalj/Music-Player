@@ -3,13 +3,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { registerUserInStorage } from '@/context/AuthContext';
+import { authService } from '@/services/auth'; // ← سرویس جدید
 import toast from 'react-hot-toast';
-import { RegisterFormData, ArtistRegisterFormData, User } from '@/types';
+import { RegisterFormData, ArtistRegisterFormData } from '@/types';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login } = useAuth(); // برای به‌روزرسانی context بعد از لاگین
   const [isArtist, setIsArtist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -31,17 +31,6 @@ export default function RegisterPage() {
     artistName: '',
     portfolio: '',
   });
-
-  // ---------- تابع کمکی برای بررسی تکراری بودن ایمیل در localStorage ----------
-  const isEmailRegistered = (email: string): boolean => {
-    if (typeof window === 'undefined') return false;
-    try {
-      const users = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      return users.some((u: any) => u.email === email);
-    } catch {
-      return false;
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,40 +60,27 @@ export default function RegisterPage() {
       }
     }
 
-    // ---------- بررسی تکراری بودن ایمیل ----------
-    const emailToCheck = isArtist ? artistData.email : formData.email;
-    if (isEmailRegistered(emailToCheck)) {
-      toast.error('This email is already registered. Please use a different email or login.');
-      return; // از ادامه جلوگیری می‌کند (لاگین خودکار و هدایت انجام نمی‌شود)
-    }
-
     setLoading(true);
 
     try {
-      const mockUser = {
-        id: 'newuser_' + Date.now(),
+      // ✅ ارسال درخواست به بک‌اند (نه localStorage)
+      const response = await authService.register({
         username: isArtist
           ? artistData.artistName.toLowerCase().replace(/\s/g, '')
           : formData.username,
-        displayName: isArtist ? artistData.artistName : formData.displayName,
-        email: emailToCheck,
+        email: isArtist ? artistData.email : formData.email,
         password: isArtist ? artistData.password : formData.password,
-        subscriptionType: 'free' as const,
-        role: isArtist ? 'pending_artist' : 'listener',
-        followers: 0,
-        following: 0,
-        dailyStreams: 0,
-        ...(isArtist && {
-          awaitingApproval: true,
-          portfolio: artistData.portfolio,
-          submittedAt: new Date().toISOString(),
-        }),
-      };
+        display_name: isArtist ? artistData.artistName : formData.displayName,
+        role: isArtist ? 'artist' : 'listener',
+        portfolio: isArtist ? artistData.portfolio : undefined,
+      });
 
-      registerUserInStorage(mockUser as User);
-      await login(mockUser.email, mockUser.password);
+      // ✅ ذخیره توکن و اطلاعات کاربر در localStorage
+      localStorage.setItem('user', JSON.stringify(response));
 
-      // ✅ Always redirect to home (pending banner will be shown there)
+      // ✅ به‌روزرسانی AuthContext (برای سایدبار و ...)
+      await login(response.user?.email || response.email, formData.password);
+
       toast.success(
         isArtist
           ? '✅ Artist account created! Pending admin approval.'
@@ -112,7 +88,10 @@ export default function RegisterPage() {
       );
       router.push('/home');
     } catch (error: any) {
-      toast.error(error.message || 'Registration failed. Please try again.');
+      const errorMsg = error.response?.data?.error ||
+                       error.response?.data?.detail ||
+                       'Registration failed. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
