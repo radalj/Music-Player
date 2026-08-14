@@ -1,0 +1,67 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.utils import timezone
+from apps.core.validators import validate_image_file  # ← اضافه شد
+
+
+class User(AbstractUser):
+    ROLE_CHOICES = (
+        ('listener', 'Listener'),
+        ('artist', 'Artist'),
+        ('supporter', 'Supporter'),
+        ('admin', 'Admin'),
+    )
+
+    # فیلدهای اصلی (بدون فیلدهای اشتراک)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='listener')
+    
+    # اطلاعات شخصی
+    display_name = models.CharField(max_length=100)
+    profile_image = models.ImageField(upload_to='profiles/', validators=[validate_image_file], null=True, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=20, null=True, blank=True)
+    bio = models.TextField(null=True, blank=True)      # برای هنرمندان
+    
+    # آمار و روابط
+    followers = models.ManyToManyField('self', symmetrical=False, related_name='following_users', blank=True)
+    following = models.ManyToManyField('self', symmetrical=False, related_name='follower_users', blank=True)
+    daily_streams = models.IntegerField(default=0)
+    
+    # فیلدهای مخصوص هنرمند
+    verified = models.BooleanField(default=False)
+    awaiting_approval = models.BooleanField(default=False)
+    portfolio = models.TextField(null=True, blank=True)
+
+    # برای فرمان createsuperuser
+    REQUIRED_FIELDS = ['email', 'display_name']
+
+    def __str__(self):
+        return f"{self.username} ({self.get_role_display()})"
+
+    def get_subscription(self):
+        """دریافت اشتراک فعال کاربر"""
+        if hasattr(self, 'subscription') and self.subscription.is_active:
+            return self.subscription
+        return None
+
+    def follow(self, user):
+        """دنبال کردن یک کاربر دیگر"""
+        if user == self:
+            raise ValueError("You cannot follow yourself.")
+        self.following.add(user)
+
+    def unfollow(self, user):
+        """لغو دنبال کردن یک کاربر"""
+        self.following.remove(user)
+
+    def is_following(self, user):
+        """بررسی آیا کاربر مورد نظر را دنبال می‌کند؟"""
+        return self.following.filter(id=user.id).exists()
+
+    @property
+    def followers_count(self):
+        return self.followers.count()
+
+    @property
+    def following_count(self):
+        return self.following.count()
