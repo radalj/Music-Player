@@ -2,43 +2,17 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { User } from '@/types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (userData: any) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// ---------- توابع کمکی برای مدیریت کاربران در localStorage ----------
-const getRegisteredUsers = (): User[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem('registeredUsers');
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveRegisteredUsers = (users: User[]) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('registeredUsers', JSON.stringify(users));
-};
-
-// ثبت کاربر جدید در لیست کاربران ثبت‌نام شده
-export const registerUserInStorage = (newUser: User) => {
-  const users = getRegisteredUsers();
-  const exists = users.some(u => u.email === newUser.email);
-  if (exists) {
-    throw new Error('This email is already registered. Please use a different email or login.');
-  }
-  users.push(newUser);
-  saveRegisteredUsers(users);
-  localStorage.setItem('user', JSON.stringify(newUser));
-  return newUser;
-};
 
 // ---------- Provider ----------
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -56,21 +30,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
-  // ورود کاربر
+  // ---------- ورود از طریق بک‌اند ----------
+  // در AuthContext.tsx، بخش login:
+
   const login = async (email: string, password: string) => {
-    const users = getRegisteredUsers();
-    // جستجوی کاربر با ایمیل و رمز عبور (در حالت واقعی، رمز هش می‌شود)
-    const foundUser = users.find(
-      (u) => u.email === email && u.password === password
-    );
-    if (!foundUser) {
-      throw new Error('ایمیل یا رمز عبور نادرست است');
+    try {
+      const response = await fetch(`${API_URL}/users/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Invalid credentials');
+      }
+
+      const data = await response.json();
+      console.log('Login response:', data); // ← لاگ برای دیباگ
+
+      if (!data.user) {
+        throw new Error('User data not received');
+      }
+
+      const userData = data.user;
+      const tokenData = { access: data.access, refresh: data.refresh };
+      const userWithToken = { ...userData, ...tokenData };
+      localStorage.setItem('user', JSON.stringify(userWithToken));
+      setUser(userData);
+    } catch (error: any) {
+      throw new Error(error.message || 'Login failed');
     }
-    setUser(foundUser);
-    localStorage.setItem('user', JSON.stringify(foundUser));
   };
 
-  // خروج از حساب
+  // ---------- ثبت‌نام از طریق بک‌اند (با لاگین خودکار) ----------
+  const register = async (userData: any) => {
+    try {
+      const response = await fetch(`${API_URL}/users/register/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // استخراج پیام خطا از پاسخ
+        let errorMessage = 'Registration failed';
+        if (errorData) {
+          // اگر errorData یک آبجکت با کلیدهای خطا باشد
+          if (typeof errorData === 'object') {
+            // جمع‌آوری تمام پیام‌های خطا
+            const messages = Object.values(errorData).flat().join(' ');
+            if (messages) errorMessage = messages;
+          } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      // لاگین خودکار
+      await login(userData.email, userData.password);
+    } catch (error: any) {
+      throw new Error(error.message || 'Registration failed');
+    }
+  };
+
+  // ---------- خروج از حساب ----------
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
@@ -81,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
+        register,
         logout,
         isAuthenticated: !!user,
       }}

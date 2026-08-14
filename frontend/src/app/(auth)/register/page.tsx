@@ -3,13 +3,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { authService } from '@/services/auth'; // ← سرویس جدید
 import toast from 'react-hot-toast';
 import { RegisterFormData, ArtistRegisterFormData } from '@/types';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth(); // برای به‌روزرسانی context بعد از لاگین
+  const { register } = useAuth();
   const [isArtist, setIsArtist] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -35,7 +34,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
+    // ---------- اعتبارسنجی ----------
     if (!isArtist) {
       if (formData.password !== formData.passwordConfirm) {
         toast.error('Passwords do not match');
@@ -63,8 +62,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // ✅ ارسال درخواست به بک‌اند (نه localStorage)
-      const response = await authService.register({
+      // ---------- ساخت payload با فیلدهای مورد قبول بک‌اند ----------
+      const payload: any = {
         username: isArtist
           ? artistData.artistName.toLowerCase().replace(/\s/g, '')
           : formData.username,
@@ -72,14 +71,14 @@ export default function RegisterPage() {
         password: isArtist ? artistData.password : formData.password,
         display_name: isArtist ? artistData.artistName : formData.displayName,
         role: isArtist ? 'artist' : 'listener',
-        portfolio: isArtist ? artistData.portfolio : undefined,
-      });
+      };
 
-      // ✅ ذخیره توکن و اطلاعات کاربر در localStorage
-      localStorage.setItem('user', JSON.stringify(response));
+      // ---------- فیلدهای اختیاری (در صورت وجود) ----------
+      // portfolio در حال حاضر در سریالایزر بک‌اند نیست، بنابراین ارسال نمی‌شود.
+      // اگر بعداً اضافه شد، می‌توانید آن را شرطی ارسال کنید.
 
-      // ✅ به‌روزرسانی AuthContext (برای سایدبار و ...)
-      await login(response.user?.email || response.email, formData.password);
+      // ---------- ثبت‌نام از طریق بک‌اند (با لاگین خودکار) ----------
+      await register(payload);
 
       toast.success(
         isArtist
@@ -88,11 +87,9 @@ export default function RegisterPage() {
       );
       router.push('/home');
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error ||
-                       error.response?.data?.detail ||
-                       'Registration failed. Please try again.';
-      toast.error(errorMsg);
-    } finally {
+    console.error('Registration error:', error);
+    toast.error(error.message || 'Registration failed. Please try again.');
+  } finally {
       setLoading(false);
     }
   };
@@ -128,7 +125,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isArtist ? (
-            // ---------- Listener Form ----------
+            // ---------- فرم شنونده ----------
             <>
               <div>
                 <label className="block text-text-secondary text-sm font-medium mb-1">
@@ -267,7 +264,7 @@ export default function RegisterPage() {
               </div>
             </>
           ) : (
-            // ---------- Artist Form ----------
+            // ---------- فرم هنرمند ----------
             <>
               <div>
                 <label className="block text-text-secondary text-sm font-medium mb-1">
@@ -365,7 +362,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Privacy Modal */}
+      {/* مودال حریم خصوصی */}
       {showPrivacyModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1a1a] p-6 rounded-lg max-w-md w-full border border-gray-700 max-h-[80vh] overflow-y-auto">

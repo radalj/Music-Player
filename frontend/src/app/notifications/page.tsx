@@ -14,219 +14,130 @@ import {
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
+
+// ---------- Helper برای دریافت توکن ----------
+const getToken = () => {
+  if (typeof window === 'undefined') return null;
+  const user = localStorage.getItem('user');
+  if (user) {
+    try {
+      const parsed = JSON.parse(user);
+      return parsed.access || null;
+    } catch {}
+  }
+  return null;
+};
+
+// ---------- Helper برای درخواست‌های احراز شده ----------
+const authFetch = async (url: string, options: RequestInit = {}) => {
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_URL}${url}`, { ...options, headers });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.error || `HTTP ${response.status}`);
+  }
+  // اگر DELETE باشد، ممکن است محتوایی بازنگردد
+  if (response.status === 204) {
+    return null;
+  }
+  return response.json();
+};
+
 // ---------- Types ----------
 interface Notification {
   id: string;
-  userId: string;
+  user: number;
   title: string;
   message: string;
   read: boolean;
-  createdAt: string;
-  type:
-    | 'subscription'
-    | 'new_release'
-    | 'artist_approval'
-    | 'artist_rejection'
-    | 'financial'
-    | 'ticket'
-    | 'verification_request';
+  created_at: string;
+  type: string;
   link?: string;
 }
-
-// ---------- Helper Functions ----------
-const generateId = () => Math.random().toString(36).substring(2, 10);
-
-const loadNotifications = (userId: string): Notification[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem('notifications');
-    if (stored) {
-      const all = JSON.parse(stored);
-      if (Array.isArray(all)) {
-        return all.filter((n: Notification) => n.userId === userId);
-      }
-    }
-  } catch (e) {
-    console.error('Error loading notifications:', e);
-  }
-  return [];
-};
-
-const saveAllNotifications = (allNotifications: Notification[]) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('notifications', JSON.stringify(allNotifications));
-};
-
-const isInitialized = (userId: string): boolean => {
-  if (typeof window === 'undefined') return false;
-  return localStorage.getItem(`notifications_initialized_${userId}`) === 'true';
-};
-
-const setInitialized = (userId: string) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(`notifications_initialized_${userId}`, 'true');
-};
-
-// ---------- Mock Data Generator ----------
-const generateMockNotifications = (userId: string, role: string): Notification[] => {
-  const now = new Date();
-  const baseTime = now.getTime();
-  const notifications: Notification[] = [];
-
-  if (role === 'listener' || role === 'admin' || role === 'supporter') {
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'Subscription Expiring Soon',
-      message: 'Your free plan will expire in 3 days. Upgrade to continue enjoying premium features.',
-      read: false,
-      createdAt: new Date(baseTime - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'subscription',
-      link: '/settings/subscription',
-    });
-
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'New Release: "Starlight" by Luna Star',
-      message: 'Your followed artist Luna Star has released a new single. Check it out now!',
-      read: false,
-      createdAt: new Date(baseTime - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'new_release',
-      link: '/albums/album2',
-    });
-
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'New Album: "Dreamscape" by The Midnight Waves',
-      message: 'The Midnight Waves have released their new album Dreamscape. Listen now!',
-      read: true,
-      createdAt: new Date(baseTime - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'new_release',
-      link: '/albums/album1',
-    });
-  }
-
-  if (role === 'artist' || role === 'admin' || role === 'supporter') {
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'Artist Account Approved',
-      message: 'Your artist account has been approved! You can now upload music and manage your profile.',
-      read: false,
-      createdAt: new Date(baseTime - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'artist_approval',
-      link: '/profile',
-    });
-
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'Monthly Financial Report',
-      message: 'Your earnings for this month: $234.56. Streams: 12,450. View full report.',
-      read: true,
-      createdAt: new Date(baseTime - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'financial',
-      link: '/artist-dashboard/financial',
-    });
-  }
-
-  if (role === 'admin' || role === 'supporter') {
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'New Support Ticket #123',
-      message: 'User john_doe has submitted a new ticket regarding payment issue. Please review.',
-      read: false,
-      createdAt: new Date(baseTime - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'ticket',
-      link: '/admin/tickets/123',
-    });
-
-    notifications.push({
-      id: generateId(),
-      userId,
-      title: 'New Artist Verification Request',
-      message: 'Artist "Neon Pulse" has requested verification. Review their portfolio now.',
-      read: false,
-      createdAt: new Date(baseTime - 6 * 24 * 60 * 60 * 1000).toISOString(),
-      type: 'verification_request',
-      link: '/admin/verification/neon-pulse',
-    });
-  }
-
-  return notifications;
-};
 
 // ---------- Main Component ----------
 export default function NotificationsPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const [isClient, setIsClient] = useState(false);
-
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    if (user) {
-      return loadNotifications(user.id);
-    }
-    return [];
-  });
-
-  const [loading, setLoading] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // بارگذاری اعلان‌ها از API
   useEffect(() => {
-    if (user) {
-      const initialized = isInitialized(user.id);
-      let userNotifs = loadNotifications(user.id);
-
-      if (!initialized) {
-        const mock = generateMockNotifications(user.id, user.role);
-        const all = JSON.parse(localStorage.getItem('notifications') || '[]');
-        const filtered = all.filter((n: Notification) => n.userId !== user.id);
-        saveAllNotifications([...filtered, ...mock]);
-        setInitialized(user.id);
-        userNotifs = mock;
-      }
-
-      setNotifications(userNotifs);
-    } else {
-      setNotifications([]);
+    if (!user) {
+      setLoading(false);
+      return;
     }
-  }, [user?.id]);
 
-  useEffect(() => {
-    if (!user) return;
-    const all = JSON.parse(localStorage.getItem('notifications') || '[]');
-    const otherUsers = all.filter((n: Notification) => n.userId !== user.id);
-    saveAllNotifications([...otherUsers, ...notifications]);
-  }, [notifications, user]);
+    const loadNotifications = async () => {
+      try {
+        setLoading(true);
+        const data = await authFetch('/notifications/');
+        // داده‌ها ممکن است به‌صورت آرایه یا با pagination برگردند
+        const items = Array.isArray(data) ? data : data.results || [];
+        setNotifications(items);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load notifications');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // ---------- Handlers ----------
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
-    toast.success(t('notifications.marked_read'));
+    loadNotifications();
+  }, [user]);
+
+  // ---------- Handler: علامت‌گذاری یک اعلان به‌عنوان خوانده شده ----------
+  const markAsRead = async (id: string) => {
+    try {
+      await authFetch(`/notifications/${id}/read/`, { method: 'POST' });
+      setNotifications(prev =>
+        prev.map(n => (n.id === id ? { ...n, read: true } : n))
+      );
+      toast.success(t('notifications.marked_read'));
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to mark as read');
+    }
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    toast.success(t('notifications.deleted'));
+  // ---------- Handler: حذف اعلان ----------
+  const deleteNotification = async (id: string) => {
+    try {
+      await authFetch(`/notifications/${id}/`, { method: 'DELETE' });
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success(t('notifications.deleted'));
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete notification');
+    }
   };
 
-  const markAllAsRead = () => {
+  // ---------- Handler: خواندن همه اعلان‌ها ----------
+  const markAllAsRead = async () => {
     if (notifications.length === 0) {
       toast(t('notifications.no_notifications_to_mark'));
       return;
     }
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    toast.success(t('notifications.all_marked_read'));
+    try {
+      await authFetch('/notifications/read-all/', { method: 'POST' });
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      toast.success(t('notifications.all_marked_read'));
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to mark all as read');
+    }
   };
 
+  // ---------- فرمت زمان ----------
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -242,9 +153,8 @@ export default function NotificationsPage() {
     return date.toLocaleDateString();
   };
 
-  if (!isClient) {
-    return null;
-  }
+  // ---------- رندر ----------
+  if (!isClient) return null;
 
   if (!user) {
     return (
@@ -285,7 +195,7 @@ export default function NotificationsPage() {
             </button>
           </div>
 
-          {/* Notifications List */}
+          {/* لیست اعلان‌ها */}
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
@@ -294,9 +204,7 @@ export default function NotificationsPage() {
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-12 text-center">
               <div className="text-5xl mb-4">📭</div>
               <h2 className="text-xl font-semibold text-white mb-2">{t('notifications.empty_title')}</h2>
-              <p className="text-text-secondary">
-                {t('notifications.empty_desc')}
-              </p>
+              <p className="text-text-secondary">{t('notifications.empty_desc')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -308,6 +216,7 @@ export default function NotificationsPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
+                    {/* نشان خوانده نشده */}
                     {!notification.read && (
                       <div className="flex-shrink-0 mt-1">
                         <div className="w-2.5 h-2.5 rounded-full bg-primary"></div>
@@ -320,7 +229,7 @@ export default function NotificationsPage() {
                           {notification.title}
                         </h3>
                         <span className="text-xs text-text-secondary whitespace-nowrap">
-                          {formatTime(notification.createdAt)}
+                          {formatTime(notification.created_at)}
                         </span>
                       </div>
                       <p className="text-sm text-text-secondary mt-1">{notification.message}</p>
@@ -334,6 +243,7 @@ export default function NotificationsPage() {
                       )}
                     </div>
 
+                    {/* دکمه‌های اقدام */}
                     <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                       {!notification.read && (
                         <button
