@@ -23,6 +23,7 @@ export default function SubscriptionsPage() {
   const { t } = useLanguage();
   const router = useRouter();
 
+  const [isMounted, setIsMounted] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([
     { id: 1, name: 'free', price: 0, max_playlists: 6, max_streams_per_day: 60 },
     { id: 2, name: 'silver', price: 9.99, max_playlists: 100, max_streams_per_day: 100 },
@@ -32,6 +33,10 @@ export default function SubscriptionsPage() {
   const [durationMonths, setDurationMonths] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [currentPlanName, setCurrentPlanName] = useState<string>('free');
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -88,7 +93,6 @@ export default function SubscriptionsPage() {
       const planObj = plans.find((p) => p.name === selectedPlan);
       const planId = planObj ? planObj.id : (selectedPlan === 'gold' ? 3 : 2);
 
-      // Call Mock Payment API
       const res = await api.post('/payments/mock/', {
         plan_id: planId,
         duration_months: durationMonths,
@@ -98,7 +102,6 @@ export default function SubscriptionsPage() {
       if (res?.data) {
         toast.success(`Successfully upgraded to ${selectedPlan.toUpperCase()} plan for ${durationMonths} month(s)!`);
 
-        // Update local user context state
         const updatedUser = {
           ...user,
           subscriptionType: selectedPlan,
@@ -118,10 +121,26 @@ export default function SubscriptionsPage() {
     }
   };
 
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen bg-dark">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center pb-28">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+        </main>
+        <Player />
+      </div>
+    );
+  }
+
   if (!user) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center">
-        <p className="text-white">Please login to view subscriptions.</p>
+      <div className="flex h-screen bg-dark">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center pb-28">
+          <p className="text-white">Please login to view subscriptions.</p>
+        </main>
+        <Player />
       </div>
     );
   }
@@ -141,7 +160,6 @@ export default function SubscriptionsPage() {
             </div>
           </div>
 
-          {/* Duration Selector */}
           <div className="flex justify-center mb-8">
             <div className="bg-[#1a1a1a] border border-gray-800 p-1.5 rounded-xl flex gap-2">
               {[1, 3, 6, 12].map((m) => (
@@ -158,9 +176,7 @@ export default function SubscriptionsPage() {
             </div>
           </div>
 
-          {/* Plan Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            {/* Free Plan */}
             <div className={`bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col justify-between ${
               selectedPlan === 'free' ? 'border-gray-500' : 'border-gray-800'
             }`}>
@@ -183,7 +199,6 @@ export default function SubscriptionsPage() {
               </button>
             </div>
 
-            {/* Silver Plan */}
             <div className={`bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col justify-between relative ${
               selectedPlan === 'silver' ? 'border-primary ring-2 ring-primary/20' : 'border-gray-800'
             }`}>
@@ -210,7 +225,6 @@ export default function SubscriptionsPage() {
               </button>
             </div>
 
-            {/* Gold Plan */}
             <div className={`bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col justify-between relative ${
               selectedPlan === 'gold' ? 'border-yellow-400 ring-2 ring-yellow-400/20' : 'border-gray-800'
             }`}>
@@ -242,7 +256,6 @@ export default function SubscriptionsPage() {
             </div>
           </div>
 
-          {/* Upgrade Action Section */}
           <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
               <h4 className="text-white font-bold text-lg">Ready to upgrade?</h4>
