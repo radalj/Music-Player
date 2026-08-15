@@ -3,5 +3,6 @@ from .views import NotificationViewSet
 
 router = DefaultRouter()
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'', NotificationViewSet, basename='notification-root')
 
 urlpatterns = router.urls
