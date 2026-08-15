@@ -185,11 +185,13 @@ export default function AlbumsPage() {
       return;
     }
     try {
-      await api.post(`/playlists/${playlistId}/add-track/`, { track_id: trackId }).catch(() => null);
+      const parsedTrackId = parseInt(trackId, 10);
+      await api.post(`/playlists/${playlistId}/add_track/`, { track_id: isNaN(parsedTrackId) ? trackId : parsedTrackId });
       toast.success(t('albums.added_to_playlist', { title: 'Track' }));
       setShowTrackMenu(null);
-    } catch (e) {
-      toast.error('Failed to add track');
+    } catch (e: any) {
+      const errorMsg = e.response?.data?.error || e.response?.data?.detail || 'Failed to add track to playlist';
+      toast.error(errorMsg);
     }
   };
 
