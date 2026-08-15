@@ -11,4 +11,6 @@ urlpatterns = [
     path('api/subscriptions/', include('apps.subscriptions.urls')),
     path('api/payments/', include('apps.payments.urls')),
     path('api/reports/', include('apps.reports.urls')),
+    path('api/tickets/', include('apps.tickets.urls')),
+    path('api/notifications/', include('apps.notifications.urls')),
 ] +  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

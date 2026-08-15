@@ -5,31 +5,54 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import SubscriptionPlan, UserSubscription
 from .serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer
+from apps.core.permissions import IsAdminUser
+
 
 class SubscriptionPlanListView(generics.ListAPIView):
-    """نمایش لیست همه پلن‌های اشتراک (بدون نیاز به احراز هویت)"""
+    """List all subscription plans"""
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanSerializer
-    permission_classes = [permissions.AllowAny]  # عمومی
+    permission_classes = [permissions.AllowAny]
+
+
+class AdminUpdatePlanPriceView(generics.RetrieveUpdateAPIView):
+    """Admin-only endpoint to update subscription prices dynamically in DB"""
+    queryset = SubscriptionPlan.objects.all()
+    serializer_class = SubscriptionPlanSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
 
 class MySubscriptionView(generics.RetrieveAPIView):
-    """دریافت اشتراک فعلی کاربر (نیاز به احراز هویت)"""
+    """Get active user subscription"""
     serializer_class = UserSubscriptionSerializer
-    permission_classes = [permissions.IsAuthenticated]  # ✅ فقط کاربران وارد شده
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
+        free_plan, _ = SubscriptionPlan.objects.get_or_create(
+            name='free',
+            defaults={
+                'price': 0,
+                'max_playlists': 6,
+                'max_streams_per_day': 60,
+                'can_upload_profile': False,
+                'can_download': False,
+                'early_access': False,
+                'show_analytics': False
+            }
+        )
         subscription, created = UserSubscription.objects.get_or_create(
             user=self.request.user,
             defaults={
-                'plan': SubscriptionPlan.objects.get(name='free'),
+                'plan': free_plan,
                 'expiry_date': timezone.now() + timedelta(days=365*10)
             }
         )
         return subscription
 
+
 class PurchaseSubscriptionView(APIView):
-    """خرید یا ارتقا اشتراک (نیاز به احراز هویت)"""
-    permission_classes = [permissions.IsAuthenticated]  # ✅ فقط کاربران وارد شده
+    """Purchase or upgrade subscription"""
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         plan_id = request.data.get('plan_id')
@@ -46,7 +69,6 @@ class PurchaseSubscriptionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # شبیه‌سازی پرداخت موفق
         subscription, created = UserSubscription.objects.get_or_create(user=request.user)
 
         if subscription.expiry_date and subscription.expiry_date > timezone.now():

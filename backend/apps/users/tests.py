@@ -1,3 +1,82 @@
 from django.test import TestCase
+from rest_framework.test import APIClient
+from rest_framework import status
+from django.core.files.uploadedfile import SimpleUploadedFile
+from .models import User
+from apps.subscriptions.models import SubscriptionPlan, UserSubscription
 
-# Create your tests here.
+
+class UserAuthAndProfileTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.free_plan = SubscriptionPlan.objects.create(name='free', price=0, max_playlists=6)
+        self.silver_plan = SubscriptionPlan.objects.create(name='silver', price=10, max_playlists=100)
+
+        self.listener = User.objects.create_user(
+            username='listener1',
+            email='listener1@example.com',
+            password='password123',
+            display_name='Listener One',
+            role='listener'
+        )
+        UserSubscription.objects.create(user=self.listener, plan=self.free_plan)
+
+        self.artist = User.objects.create_user(
+            username='artist1',
+            email='artist1@example.com',
+            password='password123',
+            display_name='Artist One',
+            role='artist',
+            awaiting_approval=True
+        )
+
+        self.admin = User.objects.create_user(
+            username='admin1',
+            email='admin1@example.com',
+            password='password123',
+            display_name='Admin User',
+            role='admin'
+        )
+
+    def test_listener_registration(self):
+        response = self.client.post('/api/users/register/', {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'password123',
+            'display_name': 'New User',
+            'role': 'listener'
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(User.objects.filter(email='newuser@example.com').exists())
+
+    def test_login_returns_jwt_tokens(self):
+        response = self.client.post('/api/users/login/', {
+            'email': 'listener1@example.com',
+            'password': 'password123'
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
+
+    def test_base_user_profile_photo_upload_restriction(self):
+        self.client.force_authenticate(user=self.listener)
+        dummy_image = SimpleUploadedFile("avatar.jpg", b"fake image content", content_type="image/jpeg")
+        response = self.client.patch('/api/users/profile/', {'profile_image': dummy_image}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_follow_and_unfollow_user(self):
+        self.client.force_authenticate(user=self.listener)
+        response = self.client.post(f'/api/users/{self.artist.id}/follow/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(self.listener.is_following(self.artist))
+
+        response_del = self.client.delete(f'/api/users/{self.artist.id}/follow/')
+        self.assertEqual(response_del.status_code, status.HTTP_200_OK)
+        self.assertFalse(self.listener.is_following(self.artist))
+
+    def test_approve_artist_by_admin(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(f'/api/users/artists/{self.artist.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.artist.refresh_from_db()
+        self.assertTrue(self.artist.verified)
+        self.assertFalse(self.artist.awaiting_approval)

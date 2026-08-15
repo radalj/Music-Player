@@ -216,7 +216,10 @@ class MockPaymentView(APIView):
 
     def post(self, request):
         plan_id = request.data.get('plan_id')
-        duration_months = request.data.get('duration_months', 1)
+        try:
+            duration_months = int(request.data.get('duration_months', 1))
+        except (ValueError, TypeError):
+            duration_months = 1
 
         try:
             plan = SubscriptionPlan.objects.get(id=plan_id)

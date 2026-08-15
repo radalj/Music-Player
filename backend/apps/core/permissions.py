@@ -1,8 +1,9 @@
 from rest_framework import permissions
 from apps.subscriptions.models import SubscriptionPlan
 
+
 class IsSelfOrAdmin(permissions.BasePermission):
-    """فقط خود کاربر یا ادمین اجازه دسترسی دارند"""
+    """Only user themselves or admin can access"""
     def has_object_permission(self, request, view, obj):
         if hasattr(obj, 'user'):
             return obj.user == request.user or request.user.role == 'admin'
@@ -10,8 +11,9 @@ class IsSelfOrAdmin(permissions.BasePermission):
             return obj == request.user or request.user.role == 'admin'
         return False
 
+
 class IsArtistOrReadOnly(permissions.BasePermission):
-    """فقط هنرمند یا ادمین اجازه ایجاد/ویرایش اثر دارند"""
+    """Only artist or admin can create/modify tracks and albums"""
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
@@ -24,13 +26,16 @@ class IsArtistOrReadOnly(permissions.BasePermission):
             return obj.artist == request.user or request.user.role == 'admin'
         return request.user.role == 'admin'
 
+
 class IsAdminOrSupporter(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role in ['admin', 'supporter']
 
+
 class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == 'admin'
+
 
 class HasPlaylistLimit(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -39,19 +44,25 @@ class HasPlaylistLimit(permissions.BasePermission):
         user = request.user
         if not user.is_authenticated:
             return False
-        try:
-            subscription = user.subscription
-            plan = subscription.plan
-        except:
-            plan = SubscriptionPlan.objects.get(name='free')
-        max_playlists = plan.max_playlists
+
+        plan = None
+        if hasattr(user, 'subscription') and user.subscription and user.subscription.plan:
+            plan = user.subscription.plan
+        else:
+            plan = SubscriptionPlan.objects.filter(name='free').first()
+
+        max_playlists = plan.max_playlists if plan else 6
         if max_playlists is None:
             return True
+
         from apps.playlists.models import Playlist
         current_count = Playlist.objects.filter(creator=user).count()
         if current_count >= max_playlists:
-            raise PermissionError(f"You have reached the maximum of {max_playlists} playlists for your plan.")
+            plan_title = plan.get_name_display() if plan else 'Free'
+            self.message = f"You have reached the maximum of {max_playlists} playlists for your {plan_title} subscription plan."
+            return False
         return True
+
 
 class HasGoldAccess(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -60,5 +71,5 @@ class HasGoldAccess(permissions.BasePermission):
         try:
             subscription = request.user.subscription
             return subscription.plan and subscription.plan.name == 'gold'
-        except:
+        except Exception:
             return False

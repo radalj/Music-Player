@@ -50,13 +50,11 @@ INSTALLED_APPS = [
     'apps.users',         # مدیریت کاربران و احراز هویت
     'apps.music',         # آهنگ‌ها و آلبوم‌ها
     'apps.playlists',     # پلی‌لیست‌ها
-    # 'apps.notifications', # اعلان‌ها
+    'apps.notifications', # اعلان‌ها
     'apps.subscriptions', # اشتراک‌ها
     'apps.payments',      # پرداخت‌ها
     'apps.reports',
-    # 'apps.admin_panel',   # پنل مدیریت
-    # 'apps.tickets',       # تیکت‌های پشتیبانی
-    # 'apps.financial',     # حسابرسی مالی
+    'apps.tickets',       # تیکت‌های پشتیبانی
 ]
 
 # ============================================================================
