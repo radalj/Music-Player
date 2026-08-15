@@ -1,0 +1,267 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { Sidebar } from '@/components/common/Sidebar';
+import Player from '@/components/common/Player';
+import { api } from '@/services/api';
+import { CheckIcon, SparklesIcon, CreditCardIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+
+interface Plan {
+  id: number;
+  name: 'free' | 'silver' | 'gold';
+  price: string | number;
+  max_playlists: number;
+  max_streams_per_day: number;
+}
+
+export default function SubscriptionsPage() {
+  const { user, login } = useAuth();
+  const { t } = useLanguage();
+  const router = useRouter();
+
+  const [plans, setPlans] = useState<Plan[]>([
+    { id: 1, name: 'free', price: 0, max_playlists: 6, max_streams_per_day: 60 },
+    { id: 2, name: 'silver', price: 9.99, max_playlists: 100, max_streams_per_day: 100 },
+    { id: 3, name: 'gold', price: 19.99, max_playlists: -1, max_streams_per_day: -1 },
+  ]);
+  const [selectedPlan, setSelectedPlan] = useState<string>('silver');
+  const [durationMonths, setDurationMonths] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [currentPlanName, setCurrentPlanName] = useState<string>('free');
+
+  useEffect(() => {
+    if (user) {
+      setCurrentPlanName(user.subscriptionType || 'free');
+    }
+  }, [user]);
+
+  // Load plan prices from API
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await api.get('/subscriptions/plans/').catch(() => null);
+        if (res?.data) {
+          const raw = Array.isArray(res.data) ? res.data : res.data.results || [];
+          if (raw.length > 0) {
+            setPlans(
+              raw.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                price: parseFloat(p.price) || 0,
+                max_playlists: p.max_playlists,
+                max_streams_per_day: p.max_streams_per_day,
+              }))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('Error loading plans:', e);
+      }
+    };
+    fetchPlans();
+  }, []);
+
+  const getPlanPrice = (planName: string) => {
+    const p = plans.find((item) => item.name === planName);
+    const monthlyPrice = p ? typeof p.price === 'number' ? p.price : parseFloat(p.price) : 0;
+    return (monthlyPrice * durationMonths).toFixed(2);
+  };
+
+  const handleUpgrade = async () => {
+    if (!user) {
+      toast.error('Please login to upgrade subscription');
+      router.push('/login');
+      return;
+    }
+
+    if (selectedPlan === 'free') {
+      toast.error('Free plan is already default');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const planObj = plans.find((p) => p.name === selectedPlan);
+      const planId = planObj ? planObj.id : (selectedPlan === 'gold' ? 3 : 2);
+
+      // Call Mock Payment API
+      const res = await api.post('/payments/mock/', {
+        plan_id: planId,
+        duration_months: durationMonths,
+        payment_method: 'mock_gateway',
+      });
+
+      if (res?.data) {
+        toast.success(`Successfully upgraded to ${selectedPlan.toUpperCase()} plan for ${durationMonths} month(s)!`);
+
+        // Update local user context state
+        const updatedUser = {
+          ...user,
+          subscriptionType: selectedPlan,
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        login(updatedUser);
+
+        setTimeout(() => {
+          router.push('/profile');
+        }, 1200);
+      }
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || error.response?.data?.error || 'Payment failed';
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-dark flex items-center justify-center">
+        <p className="text-white">Please login to view subscriptions.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-dark">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto pb-28">
+        <div className="max-w-5xl mx-auto p-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">⭐ Upgrade Your Subscription</h1>
+            <p className="text-text-secondary">
+              Unlock unlimited streams, higher playlist quotas, early access releases, and premium audio quality.
+            </p>
+            <div className="mt-4 inline-block bg-[#1a1a1a] border border-gray-800 rounded-full px-4 py-1.5 text-sm text-text-secondary">
+              Current Plan: <span className="text-primary font-bold uppercase">{currentPlanName}</span>
+            </div>
+          </div>
+
+          {/* Duration Selector */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-[#1a1a1a] border border-gray-800 p-1.5 rounded-xl flex gap-2">
+              {[1, 3, 6, 12].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setDurationMonths(m)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    durationMonths === m ? 'bg-primary text-black' : 'text-text-secondary hover:text-white'
+                  }`}
+                >
+                  {m} Month{m > 1 ? 's' : ''} {m === 12 && ' (Best Value)'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Plan Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            {/* Free Plan */}
+            <div className={`bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col justify-between ${
+              selectedPlan === 'free' ? 'border-gray-500' : 'border-gray-800'
+            }`}>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Base / Free</h3>
+                <p className="text-text-secondary text-sm mb-4">Essential music streaming</p>
+                <div className="text-3xl font-bold text-white mb-6">$0 <span className="text-xs text-text-secondary">/ forever</span></div>
+                <ul className="space-y-3 text-sm text-text-secondary">
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Max 6 Playlists</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 60 Streams / Day</li>
+                  <li className="flex items-center gap-2 text-gray-500">🚫 Profile Picture Upload</li>
+                  <li className="flex items-center gap-2 text-gray-500">🚫 Early Access Releases</li>
+                </ul>
+              </div>
+              <button
+                disabled
+                className="mt-6 w-full py-2.5 bg-gray-800 text-gray-500 font-medium rounded-xl cursor-not-allowed"
+              >
+                Current Default
+              </button>
+            </div>
+
+            {/* Silver Plan */}
+            <div className={`bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col justify-between relative ${
+              selectedPlan === 'silver' ? 'border-primary ring-2 ring-primary/20' : 'border-gray-800'
+            }`}>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">Silver</h3>
+                <p className="text-text-secondary text-sm mb-4">For active music enthusiasts</p>
+                <div className="text-3xl font-bold text-white mb-6">
+                  ${getPlanPrice('silver')} <span className="text-xs text-text-secondary">/ {durationMonths} mo</span>
+                </div>
+                <ul className="space-y-3 text-sm text-text-secondary">
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Max 100 Playlists</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 100 Streams / Day</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Custom Profile Picture</li>
+                  <li className="flex items-center gap-2 text-gray-500">🚫 Early Access Releases</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => setSelectedPlan('silver')}
+                className={`mt-6 w-full py-2.5 font-medium rounded-xl transition ${
+                  selectedPlan === 'silver' ? 'bg-primary text-black' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'
+                }`}
+              >
+                {selectedPlan === 'silver' ? 'Selected' : 'Choose Silver'}
+              </button>
+            </div>
+
+            {/* Gold Plan */}
+            <div className={`bg-[#1a1a1a] border rounded-2xl p-6 flex flex-col justify-between relative ${
+              selectedPlan === 'gold' ? 'border-yellow-400 ring-2 ring-yellow-400/20' : 'border-gray-800'
+            }`}>
+              <div className="absolute -top-3 right-6 bg-gradient-to-r from-yellow-500 to-amber-600 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                <SparklesIcon className="w-3.5 h-3.5" /> POPULAR
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-yellow-400 mb-1">Gold</h3>
+                <p className="text-text-secondary text-sm mb-4">Unlimited freedom & stats</p>
+                <div className="text-3xl font-bold text-white mb-6">
+                  ${getPlanPrice('gold')} <span className="text-xs text-text-secondary">/ {durationMonths} mo</span>
+                </div>
+                <ul className="space-y-3 text-sm text-text-secondary">
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Unlimited Playlists</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Unlimited Streams</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Custom Profile Picture</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> ⭐ Early Access Releases</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> 📊 Artist Gold Analytics</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => setSelectedPlan('gold')}
+                className={`mt-6 w-full py-2.5 font-medium rounded-xl transition ${
+                  selectedPlan === 'gold' ? 'bg-yellow-400 text-black font-bold' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'
+                }`}
+              >
+                {selectedPlan === 'gold' ? 'Selected' : 'Choose Gold'}
+              </button>
+            </div>
+          </div>
+
+          {/* Upgrade Action Section */}
+          <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <h4 className="text-white font-bold text-lg">Ready to upgrade?</h4>
+              <p className="text-text-secondary text-sm">
+                Selected: <span className="text-white font-bold uppercase">{selectedPlan}</span> for {durationMonths} month(s) — Total: <span className="text-primary font-bold">${getPlanPrice(selectedPlan)}</span>
+              </p>
+            </div>
+            <button
+              onClick={handleUpgrade}
+              disabled={loading || selectedPlan === 'free'}
+              className="px-8 py-3 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition flex items-center gap-2 disabled:opacity-50"
+            >
+              <CreditCardIcon className="w-5 h-5" />
+              {loading ? 'Processing Payment...' : 'Proceed to Payment'}
+            </button>
+          </div>
+        </div>
+      </main>
+      <Player />
+    </div>
+  );
+}

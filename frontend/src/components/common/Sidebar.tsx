@@ -11,6 +11,7 @@ import {
   Cog6ToothIcon,
   BellIcon,
   ChartBarIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import {
   HomeIcon as HomeIconSolid,
@@ -19,6 +20,7 @@ import {
   QueueListIcon as QueueListIconSolid,
   Cog6ToothIcon as Cog6ToothIconSolid,
   BellIcon as BellIconSolid,
+  SparklesIcon as SparklesIconSolid,
 } from '@heroicons/react/24/solid';
 
 export const Sidebar = () => {
@@ -33,11 +35,11 @@ export const Sidebar = () => {
     { icon: UserIcon, iconSolid: UserIconSolid, label: t('sidebar.profile'), href: '/profile' },
     { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: t('sidebar.playlists'), href: '/playlists' },
     { icon: MusicalNoteIcon, iconSolid: MusicalNoteIconSolid, label: t('sidebar.albums_songs'), href: '/albums' },
+    { icon: SparklesIcon, iconSolid: SparklesIconSolid, label: 'Subscriptions', href: '/subscriptions' },
     { icon: BellIcon, iconSolid: BellIconSolid, label: t('sidebar.notifications'), href: '/notifications' },
     { icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, label: t('sidebar.settings'), href: '/settings' },
   ];
 
-  // Add admin/artist dashboard if applicable
   const extraItems = [];
   if (user?.role === 'artist') {
     extraItems.push({
@@ -58,14 +60,12 @@ export const Sidebar = () => {
 
   const allItems = [...navItems, ...extraItems];
 
-  // Determine subscription label based on user role
   let subscriptionLabel = t('sidebar.free_plan');
   if (user?.role === 'listener') {
     if (user.subscriptionType === 'gold') subscriptionLabel = t('sidebar.gold_plan');
     else if (user.subscriptionType === 'silver') subscriptionLabel = t('sidebar.silver_plan');
     else subscriptionLabel = t('sidebar.free_plan');
   } else {
-    // For non-listener roles, don't show subscription type
     subscriptionLabel = '';
   }
 
@@ -97,7 +97,7 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* User Profile Area (clickable to Profile page) */}
+      {/* User Profile Area */}
       <div className="pt-4 border-t border-gray-800">
         <Link
           href="/profile"
