@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -27,6 +28,11 @@ export const Sidebar = () => {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
 
@@ -41,7 +47,7 @@ export const Sidebar = () => {
   ];
 
   const extraItems = [];
-  if (user?.role === 'artist') {
+  if (isMounted && user?.role === 'artist') {
     extraItems.push({
       icon: ChartBarIcon,
       iconSolid: ChartBarIcon,
@@ -49,7 +55,7 @@ export const Sidebar = () => {
       href: '/artist-dashboard',
     });
   }
-  if (user?.role === 'supporter' || user?.role === 'admin') {
+  if (isMounted && (user?.role === 'supporter' || user?.role === 'admin')) {
     extraItems.push({
       icon: ChartBarIcon,
       iconSolid: ChartBarIcon,
@@ -60,13 +66,13 @@ export const Sidebar = () => {
 
   const allItems = [...navItems, ...extraItems];
 
-  let subscriptionLabel = t('sidebar.free_plan');
-  if (user?.role === 'listener') {
-    if (user.subscriptionType === 'gold') subscriptionLabel = t('sidebar.gold_plan');
-    else if (user.subscriptionType === 'silver') subscriptionLabel = t('sidebar.silver_plan');
-    else subscriptionLabel = t('sidebar.free_plan');
-  } else {
-    subscriptionLabel = '';
+  let subscriptionLabel = '';
+  if (isMounted && user) {
+    if (user.role === 'listener') {
+      if (user.subscriptionType === 'gold') subscriptionLabel = t('sidebar.gold_plan');
+      else if (user.subscriptionType === 'silver') subscriptionLabel = t('sidebar.silver_plan');
+      else subscriptionLabel = t('sidebar.free_plan');
+    }
   }
 
   return (
@@ -104,15 +110,17 @@ export const Sidebar = () => {
           className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1a1a1a] transition cursor-pointer"
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-green-700 flex items-center justify-center text-black font-bold text-lg">
-            {user?.displayName?.[0]?.toUpperCase() || '?'}
+            {isMounted && user?.displayName?.[0]?.toUpperCase() ? user.displayName[0].toUpperCase() : '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate">{user?.displayName || t('sidebar.guest')}</p>
-            {subscriptionLabel && (
-              <p className="text-text-secondary text-xs capitalize">
+            <p className="text-white text-sm font-medium truncate">
+              {isMounted && user?.displayName ? user.displayName : t('sidebar.guest')}
+            </p>
+            {isMounted && subscriptionLabel ? (
+              <p className="text-text-secondary text-xs capitalize" suppressHydrationWarning>
                 {subscriptionLabel}
               </p>
-            )}
+            ) : null}
           </div>
         </Link>
       </div>
