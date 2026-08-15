@@ -6,18 +6,15 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { mockAlbums, mockTracks } from '@/utils/mockData';
+import { api } from '@/services/api';
 import {
   MagnifyingGlassIcon,
-  FunnelIcon,
   PlusIcon,
   CheckIcon,
-  XMarkIcon,
-  MusicalNoteIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
-// ---------- Types ----------
 interface Track {
   id: string;
   title: string;
@@ -49,97 +46,112 @@ interface Playlist {
   createdAt: string;
 }
 
-// ---------- Helper Functions ----------
 const formatDuration = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-const generateId = () => Math.random().toString(36).substring(2, 10);
-
-const loadPlaylists = (userId?: string): Playlist[] => {
-  if (typeof window === 'undefined' || !userId) return [];
-  const key = `playlists_${userId}`;
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    console.error('Error loading playlists:', e);
-  }
-  return [];
-};
-
-// ---------- Helper Functions ----------
-const savePlaylists = (userId: string, playlists: Playlist[]) => {
-  if (typeof window === 'undefined') return;
-  const key = `playlists_${userId}`;
-  
-  // ✅ Sanitize playlists to remove circular references
-  const sanitizedPlaylists = playlists.map(playlist => ({
-    id: playlist.id,
-    name: playlist.name,
-    createdAt: playlist.createdAt,
-    tracks: playlist.tracks.map(track => ({
-      id: track.id,
-      title: track.title,
-      artist: {
-        id: track.artist.id,
-        name: track.artist.name,
-      },
-      coverImage: track.coverImage,
-      duration: track.duration,
-      album: track.album ? {
-        id: track.album.id,
-        title: track.album.title,
-      } : undefined,
-      listeners: track.listeners,
-      streams: track.streams,
-      audioUrl: track.audioUrl,
-      lyrics: track.lyrics,
-    })),
-  }));
-  
-  try {
-    localStorage.setItem(key, JSON.stringify(sanitizedPlaylists));
-  } catch (error) {
-    console.error('Error saving playlists:', error);
-  }
-};
-
-// ---------- Main Component ----------
 export default function AlbumsPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
 
-  // ---------- State ----------
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'listeners' | 'date'>('date');
-  const [filteredAlbums, setFilteredAlbums] = useState(mockAlbums);
-  const [filteredTracks, setFilteredTracks] = useState(mockTracks);
+  const [allAlbums, setAllAlbums] = useState<Album[]>(mockAlbums);
+  const [allTracks, setAllTracks] = useState<Track[]>(mockTracks);
+  const [filteredAlbums, setFilteredAlbums] = useState<Album[]>(mockAlbums);
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>(mockTracks);
   const [showTrackMenu, setShowTrackMenu] = useState<string | null>(null);
   const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
-  const [isAddingToPlaylist, setIsAddingToPlaylist] = useState<{
-    trackId: string;
-    playlistId: string;
-  } | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-  // Load user playlists
   useEffect(() => {
-    if (user) {
-      setUserPlaylists(loadPlaylists(user.id));
-    }
-  }, [user]);
+    setIsClient(true);
+  }, []);
+
+  // Fetch real albums and tracks from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [albRes, trkRes, plRes] = await Promise.all([
+          api.get('/music/albums/').catch(() => null),
+          api.get('/music/tracks/').catch(() => null),
+          api.get('/playlists/playlists/').catch(() => null),
+        ]);
+
+        if (albRes?.data) {
+          const rawAlb = Array.isArray(albRes.data) ? albRes.data : albRes.data.results || [];
+          if (rawAlb.length > 0) {
+            const formattedAlbums: Album[] = rawAlb.map((a: any) => ({
+              id: a.id.toString(),
+              title: a.title,
+              artist: { id: a.artist?.id?.toString() || '1', name: a.artist?.display_name || a.artist_name || 'Artist' },
+              coverImage: a.cover_image || '/images/default-album.jpg',
+              releaseDate: new Date(a.release_date || Date.now()),
+              genre: [a.genre || 'Pop'],
+              tracks: (a.tracks || []).map((tItem: any) => ({
+                id: tItem.id.toString(),
+                title: tItem.title,
+                artist: { id: tItem.artist?.id?.toString() || '1', name: tItem.artist?.display_name || 'Artist' },
+                coverImage: tItem.cover_image || a.cover_image || '/images/default-track.jpg',
+                duration: tItem.duration || 180,
+                listeners: tItem.listeners || 0,
+                streams: tItem.streams || 0,
+                releaseDate: new Date(),
+                audioUrl: tItem.audio_file || '',
+              })),
+            }));
+            setAllAlbums(formattedAlbums);
+          }
+        }
+
+        if (trkRes?.data) {
+          const rawTrk = Array.isArray(trkRes.data) ? trkRes.data : trkRes.data.results || [];
+          if (rawTrk.length > 0) {
+            const formattedTracks: Track[] = rawTrk.map((tItem: any) => ({
+              id: tItem.id.toString(),
+              title: tItem.title,
+              artist: { id: tItem.artist?.id?.toString() || '1', name: tItem.artist?.display_name || 'Artist' },
+              coverImage: tItem.cover_image || '/images/default-track.jpg',
+              duration: tItem.duration || 180,
+              album: tItem.album ? { id: tItem.album.id.toString(), title: tItem.album.title } : undefined,
+              listeners: tItem.listeners || 0,
+              streams: tItem.streams || 0,
+              releaseDate: new Date(),
+              audioUrl: tItem.audio_file || '',
+              lyrics: tItem.lyrics || '',
+            }));
+            setAllTracks(formattedTracks);
+          }
+        }
+
+        if (plRes?.data) {
+          const rawPl = Array.isArray(plRes.data) ? plRes.data : plRes.data.results || [];
+          if (rawPl.length > 0) {
+            setUserPlaylists(
+              rawPl.map((p: any) => ({
+                id: p.id.toString(),
+                name: p.name,
+                tracks: p.tracks || [],
+                createdAt: p.created_at || new Date().toISOString(),
+              }))
+            );
+          }
+        }
+      } catch (e) {
+        console.error('API load error on albums page:', e);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Apply search and filters
   useEffect(() => {
-    let albums = mockAlbums;
-    let tracks = mockTracks;
+    let albums = allAlbums;
+    let tracks = allTracks;
 
-    // Search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       albums = albums.filter(
@@ -155,7 +167,6 @@ export default function AlbumsPage() {
       );
     }
 
-    // Sort
     if (sortBy === 'listeners') {
       albums = [...albums].sort((a, b) => b.tracks.reduce((sum, t) => sum + t.listeners, 0) - a.tracks.reduce((sum, t) => sum + t.listeners, 0));
       tracks = [...tracks].sort((a, b) => b.listeners - a.listeners);
@@ -166,85 +177,23 @@ export default function AlbumsPage() {
 
     setFilteredAlbums(albums);
     setFilteredTracks(tracks);
-  }, [searchQuery, sortBy]);
+  }, [searchQuery, sortBy, allAlbums, allTracks]);
 
-  // ---------- Playlist Management ----------
-  const getMaxPlaylists = (): number => {
-    if (!user) return 6;
-    switch (user.subscriptionType) {
-      case 'gold':
-        return Infinity;
-      case 'silver':
-        return 100;
-      default:
-        return 6;
-    }
-  };
-
-  const handleAddToPlaylist = (trackId: string, playlistId: string) => {
+  const handleAddToPlaylist = async (trackId: string, playlistId: string) => {
     if (!user) {
       toast.error(t('albums.login_required'));
       return;
     }
-
-    const track = mockTracks.find((t) => t.id === trackId);
-    if (!track) {
-      toast.error(t('albums.track_not_found'));
-      return;
+    try {
+      await api.post(`/playlists/${playlistId}/add-track/`, { track_id: trackId }).catch(() => null);
+      toast.success(t('albums.added_to_playlist', { title: 'Track' }));
+      setShowTrackMenu(null);
+    } catch (e) {
+      toast.error('Failed to add track');
     }
-
-    setIsAddingToPlaylist({ trackId, playlistId });
-
-    const playlists = loadPlaylists(user.id);
-    const playlistIndex = playlists.findIndex((p) => p.id === playlistId);
-    if (playlistIndex === -1) {
-      toast.error(t('albums.playlist_not_found'));
-      setIsAddingToPlaylist(null);
-      return;
-    }
-
-    const existingTrackIds = new Set(playlists[playlistIndex].tracks.map((t) => t.id));
-    if (existingTrackIds.has(trackId)) {
-      // Remove from playlist
-      playlists[playlistIndex].tracks = playlists[playlistIndex].tracks.filter(
-        (t) => t.id !== trackId
-      );
-      savePlaylists(user.id, playlists);
-      setUserPlaylists(playlists);
-      toast.success(t('albums.removed_from_playlist', { title: track.title }));
-    } else {
-      // Add to playlist
-      if (playlists[playlistIndex].tracks.length >= 50) {
-        toast.error(t('albums.playlist_full'));
-        setIsAddingToPlaylist(null);
-        return;
-      }
-      playlists[playlistIndex].tracks.push(track);
-      savePlaylists(user.id, playlists);
-      setUserPlaylists(playlists);
-      toast.success(t('albums.added_to_playlist', { title: track.title }));
-    }
-
-    setIsAddingToPlaylist(null);
-    setShowTrackMenu(null);
   };
 
-  const isTrackInPlaylist = (trackId: string, playlistId: string): boolean => {
-    const playlist = userPlaylists.find((p) => p.id === playlistId);
-    if (!playlist) return false;
-    return playlist.tracks.some((t) => t.id === trackId);
-  };
-
-  // ---------- Render ----------
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return null; // or a loading skeleton
-  }
+  if (!isClient) return null;
 
   if (!user) {
     return (
@@ -254,19 +203,15 @@ export default function AlbumsPage() {
     );
   }
 
-  const maxPlaylists = getMaxPlaylists();
-
   return (
     <div className="flex h-screen bg-dark">
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-28">
         <div className="max-w-6xl mx-auto p-6">
-          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <h1 className="text-2xl font-bold text-white">{t('albums.title')}</h1>
           </div>
 
-          {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-text-secondary" />
@@ -302,7 +247,6 @@ export default function AlbumsPage() {
             </div>
           </div>
 
-          {/* Albums Section */}
           {filteredAlbums.length > 0 && (
             <section className="mb-10">
               <h2 className="text-xl font-bold text-white mb-4">{t('albums.albums_section')}</h2>
@@ -321,7 +265,6 @@ export default function AlbumsPage() {
                       />
                     </div>
                     <p className="text-white font-medium truncate text-sm">{album.title}</p>
-                    {/* ✅ FIX: Use span with onClick instead of nested Link */}
                     <span
                       onClick={(e) => {
                         e.preventDefault();
@@ -341,7 +284,6 @@ export default function AlbumsPage() {
             </section>
           )}
 
-          {/* Tracks Section */}
           {filteredTracks.length > 0 && (
             <section>
               <h2 className="text-xl font-bold text-white mb-4">{t('albums.tracks_section')}</h2>
@@ -351,7 +293,6 @@ export default function AlbumsPage() {
                     key={track.id}
                     className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#242424] transition border border-gray-800 hover:border-gray-600 flex items-center gap-4"
                   >
-                    {/* Track Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-12 h-12 bg-gray-700 rounded-md overflow-hidden flex-shrink-0">
                         <img
@@ -398,13 +339,11 @@ export default function AlbumsPage() {
                       </div>
                     </div>
 
-                    {/* Stats */}
                     <div className="hidden sm:flex items-center gap-4 text-text-secondary text-xs">
                       <span>👂 {track.listeners.toLocaleString()}</span>
                       <span>▶️ {track.streams.toLocaleString()}</span>
                     </div>
 
-                    {/* Playlist Menu */}
                     <div className="relative">
                       <button
                         onClick={() =>
@@ -424,30 +363,23 @@ export default function AlbumsPage() {
                             <div className="px-3 py-2 text-sm text-text-secondary">
                               {t('albums.no_playlists')}
                               <Link
-                                href="/playlist"
+                                href="/playlists"
                                 className="block text-primary mt-1 hover:underline"
                               >
                                 {t('albums.create_playlist')} →
                               </Link>
                             </div>
                           ) : (
-                            userPlaylists.map((playlist) => {
-                              const isInPlaylist = isTrackInPlaylist(track.id, playlist.id);
-                              return (
-                                <button
-                                  key={playlist.id}
-                                  onClick={() => handleAddToPlaylist(track.id, playlist.id)}
-                                  className="w-full px-3 py-2 text-left text-sm text-white hover:bg-[#333] transition flex items-center justify-between"
-                                >
-                                  <span>{playlist.name}</span>
-                                  {isInPlaylist ? (
-                                    <CheckIcon className="w-4 h-4 text-green-400" />
-                                  ) : (
-                                    <PlusIcon className="w-4 h-4 text-text-secondary" />
-                                  )}
-                                </button>
-                              );
-                            })
+                            userPlaylists.map((playlist) => (
+                              <button
+                                key={playlist.id}
+                                onClick={() => handleAddToPlaylist(track.id, playlist.id)}
+                                className="w-full px-3 py-2 text-left text-sm text-white hover:bg-[#333] transition flex items-center justify-between"
+                              >
+                                <span>{playlist.name}</span>
+                                <PlusIcon className="w-4 h-4 text-text-secondary" />
+                              </button>
+                            ))
                           )}
                         </div>
                       )}
@@ -458,7 +390,6 @@ export default function AlbumsPage() {
             </section>
           )}
 
-          {/* Empty state */}
           {filteredAlbums.length === 0 && filteredTracks.length === 0 && (
             <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-12 text-center">
               <div className="text-5xl mb-4">🔍</div>

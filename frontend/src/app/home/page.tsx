@@ -5,6 +5,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { mockPlaylists, mockAlbums, mockTracks } from '@/utils/mockData';
+import { api } from '@/services/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -14,11 +15,11 @@ export default function HomePage() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
-  
+
   const [isClient, setIsClient] = useState(false);
-  const [recentPlaylists, setRecentPlaylists] = useState(mockPlaylists.slice(0, 3));
-  const [latestAlbums, setLatestAlbums] = useState(mockAlbums.slice(0, 4));
-  const [popularTracks, setPopularTracks] = useState(mockTracks.slice(0, 5));
+  const [recentPlaylists, setRecentPlaylists] = useState<any[]>(mockPlaylists.slice(0, 3));
+  const [latestAlbums, setLatestAlbums] = useState<any[]>(mockAlbums.slice(0, 4));
+  const [popularTracks, setPopularTracks] = useState<any[]>(mockTracks.slice(0, 5));
   const [isGoldUser, setIsGoldUser] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
@@ -32,6 +33,68 @@ export default function HomePage() {
     } else {
       setIsGoldUser(user.subscriptionType === 'gold');
       setIsPending(user.role === 'pending_artist');
+
+      // Fetch real data from API with fallback
+      const fetchData = async () => {
+        try {
+          const [plRes, albRes, trkRes] = await Promise.all([
+            api.get('/playlists/playlists/').catch(() => null),
+            api.get('/music/albums/').catch(() => null),
+            api.get('/music/tracks/').catch(() => null),
+          ]);
+
+          if (plRes?.data) {
+            const rawPl = Array.isArray(plRes.data) ? plRes.data : plRes.data.results || [];
+            if (rawPl.length > 0) {
+              setRecentPlaylists(
+                rawPl.slice(0, 3).map((p: any) => ({
+                  id: p.id.toString(),
+                  name: p.name,
+                  coverImage: p.cover_image || '/images/default-playlist.jpg',
+                  creator: { displayName: p.creator_name || 'User' },
+                  tracks: p.tracks || [],
+                }))
+              );
+            }
+          }
+
+          if (albRes?.data) {
+            const rawAlb = Array.isArray(albRes.data) ? albRes.data : albRes.data.results || [];
+            if (rawAlb.length > 0) {
+              setLatestAlbums(
+                rawAlb.slice(0, 4).map((a: any) => ({
+                  id: a.id.toString(),
+                  title: a.title,
+                  coverImage: a.cover_image || '/images/default-album.jpg',
+                  artist: { name: a.artist?.display_name || a.artist_name || 'Artist' },
+                  tracks: a.tracks || [],
+                }))
+              );
+            }
+          }
+
+          if (trkRes?.data) {
+            const rawTrk = Array.isArray(trkRes.data) ? trkRes.data : trkRes.data.results || [];
+            if (rawTrk.length > 0) {
+              setPopularTracks(
+                rawTrk.slice(0, 5).map((t: any) => ({
+                  id: t.id.toString(),
+                  title: t.title,
+                  coverImage: t.cover_image || '/images/default-track.jpg',
+                  artist: { name: t.artist?.display_name || 'Artist' },
+                  album: t.album ? { title: t.album.title } : undefined,
+                  duration: t.duration || 180,
+                  listeners: t.listeners || 0,
+                }))
+              );
+            }
+          }
+        } catch (e) {
+          console.error('API load error on home page:', e);
+        }
+      };
+
+      fetchData();
     }
   }, [user, router]);
 
@@ -165,7 +228,7 @@ export default function HomePage() {
                     {t('home.gold_desc')}
                   </p>
                   <div className="flex flex-wrap gap-3">
-                    {mockTracks.slice(0, 3).map((track) => (
+                    {popularTracks.slice(0, 3).map((track) => (
                       <div
                         key={track.id}
                         className="bg-[#2a2a2a] p-3 rounded-lg flex items-center gap-3 hover:bg-[#333] transition cursor-pointer flex-1 min-w-[150px]"
@@ -188,7 +251,7 @@ export default function HomePage() {
               <section className="mb-10">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-bold text-white">🎵 {t('home.recent_playlists')}</h2>
-                  <Link href="/playlist" className="text-primary text-sm hover:underline">{t('home.view_all')}</Link>
+                  <Link href="/playlists" className="text-primary text-sm hover:underline">{t('home.view_all')}</Link>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recentPlaylists.map((playlist) => (
@@ -199,8 +262,8 @@ export default function HomePage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-white font-medium truncate">{playlist.name}</p>
-                          <p className="text-text-secondary text-sm truncate">{playlist.creator.displayName}</p>
-                          <p className="text-text-secondary text-xs">{playlist.tracks.length} {t('home.tracks_count')}</p>
+                          <p className="text-text-secondary text-sm truncate">{playlist.creator?.displayName || 'User'}</p>
+                          <p className="text-text-secondary text-xs">{playlist.tracks?.length || 0} {t('home.tracks_count')}</p>
                         </div>
                       </div>
                     </div>
@@ -221,8 +284,7 @@ export default function HomePage() {
                         <img src={album.coverImage} alt={album.title} className="w-full h-full object-cover" />
                       </div>
                       <p className="text-white font-medium truncate text-sm">{album.title}</p>
-                      <p className="text-text-secondary text-xs truncate">{album.artist.name}</p>
-                      <p className="text-text-secondary text-xs">{album.tracks.length} {t('home.tracks_count')}</p>
+                      <p className="text-text-secondary text-xs truncate">{album.artist?.name || 'Artist'}</p>
                     </div>
                   ))}
                 </div>
@@ -244,11 +306,10 @@ export default function HomePage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-white font-medium truncate">{track.title}</p>
-                          <p className="text-text-secondary text-sm truncate">{track.artist.name}</p>
+                          <p className="text-text-secondary text-sm truncate">{track.artist?.name || 'Artist'}</p>
                         </div>
                         <div className="text-text-secondary text-sm hidden sm:block">{track.album?.title || t('home.single')}</div>
                         <div className="text-text-secondary text-sm font-mono">{formatDuration(track.duration)}</div>
-                        <div className="text-text-secondary text-sm hidden md:block">👂 {track.listeners.toLocaleString()}</div>
                       </div>
                     ))}
                   </div>
