@@ -23,9 +23,11 @@ class RequestPaymentView(APIView):
 
     def post(self, request):
         plan_id = request.data.get('plan_id')
-        duration_months = request.data.get('duration_months', 1)
+        try:
+            duration_months = int(request.data.get('duration_months', 1))
+        except (ValueError, TypeError):
+            duration_months = 1
 
-        # اعتبارسنجی
         try:
             plan = SubscriptionPlan.objects.get(id=plan_id)
         except SubscriptionPlan.DoesNotExist:
@@ -37,61 +39,52 @@ class RequestPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # محاسبه مبلغ به ریال (قیمت پلن به تومان/دلار * ۱۰)
-        amount = int(plan.price * duration_months * 100000)
-        logger.info(f"Amount in Rials: {amount}")
-
-        # اگر مبلغ صفر بود (برای تست)، یک مقدار پیش‌فرض قرار دهید
-        if amount < 10000:
-            amount = 10000
-            logger.warning("Amount was 0, set to 10000 for testing.")
+        # محاسبه مبلغ به ریال
+        amount_in_rials = int(plan.price * duration_months * 10000)
+        if amount_in_rials < 1000:
+            amount_in_rials = 1000
 
         # ذخیره تراکنش در دیتابیس (وضعیت pending)
         transaction = Transaction.objects.create(
             user=request.user,
             plan=plan,
-            amount=plan.price * duration_months,
+            amount=amount_in_rials,
             duration_months=duration_months,
             status='pending'
         )
 
-        # ✅ داده‌های درخواست با کلیدهای کوچک (طبق مستندات v4)
         data = {
-            "merchant_id": settings.ZARINPAL_MERCHANT_ID,  # 36 کاراکتر
-            "amount": amount,
+            "merchant_id": settings.ZARINPAL_MERCHANT_ID,
+            "amount": amount_in_rials,
             "callback_url": settings.ZARINPAL_CALLBACK_URL,
             "description": f'خرید اشتراک {plan.get_name_display()} - {duration_months} ماهه',
             "metadata": {
+                "mobile": getattr(request.user, 'mobile', '09121234567'),
+                "email": request.user.email or "info.test@gmail.com",
                 "user_id": str(request.user.id),
                 "transaction_id": str(transaction.id)
             }
         }
 
-        # انتخاب آدرس Sandbox یا Production
         if settings.ZARINPAL_SANDBOX:
             url = 'https://sandbox.zarinpal.com/pg/v4/payment/request.json'
         else:
             url = 'https://api.zarinpal.com/pg/v4/payment/request.json'
 
-        headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 
         try:
-            # ارسال درخواست به زرین‌پال
             response = requests.post(url, data=json.dumps(data), headers=headers, timeout=30)
-
-            # لاگ‌گیری برای اشکال‌زدایی
             logger.info(f"Zarinpal status: {response.status_code}")
             logger.info(f"Zarinpal response: {response.text}")
 
             if response.status_code == 200:
                 result = response.json()
-                # در نسخه v4، پاسخ در کلید `data` قرار دارد
                 if result.get('data', {}).get('code') == 100:
                     authority = result['data']['authority']
                     transaction.authority = authority
                     transaction.save()
 
-                    # لینک پرداخت
                     if settings.ZARINPAL_SANDBOX:
                         payment_url = f'https://sandbox.zarinpal.com/pg/StartPay/{authority}'
                     else:
@@ -103,7 +96,6 @@ class RequestPaymentView(APIView):
                         'transaction_id': transaction.id
                     })
                 else:
-                    # خطای زرین‌پال با کد مشخص
                     error_code = result.get('data', {}).get('code')
                     logger.error(f"Zarinpal error code: {error_code}")
                     return Response({
@@ -132,13 +124,12 @@ class VerifyPaymentView(APIView):
     """
     مرحله ۲: تایید پرداخت (بازگشت از درگاه) - نسخه v4
     """
-    permission_classes = [permissions.AllowAny]  # زرین‌پال به این آدرس درخواست می‌دهد
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         authority = request.GET.get('Authority')
         status_param = request.GET.get('Status')
 
-        # اگر کاربر پرداخت را لغو کرده باشد
         if status_param == 'NOK':
             try:
                 transaction = Transaction.objects.get(authority=authority)
@@ -146,17 +137,16 @@ class VerifyPaymentView(APIView):
                 transaction.save()
             except Transaction.DoesNotExist:
                 pass
-            return redirect(f'http://localhost:3000/payment-result?status=canceled')
+            return redirect('http://localhost:3000/subscriptions?status=canceled')
 
         try:
             transaction = Transaction.objects.get(authority=authority)
         except Transaction.DoesNotExist:
             return Response({'error': 'تراکنش یافت نشد'}, status=404)
 
-        # تایید پرداخت در زرین‌پال
         data = {
             "merchant_id": settings.ZARINPAL_MERCHANT_ID,
-            "amount": int(transaction.amount * 10),  # ریال
+            "amount": int(transaction.amount),
             "authority": authority,
         }
 
@@ -165,23 +155,20 @@ class VerifyPaymentView(APIView):
         else:
             url = 'https://api.zarinpal.com/pg/v4/payment/verify.json'
 
-        try:
-            response = requests.post(url, data=json.dumps(data), headers={'Content-Type': 'application/json'}, timeout=30)
-            logger.info(f"Verify response: {response.text}")
+        headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
 
+        try:
+            response = requests.post(url, data=json.dumps(data), headers=headers, timeout=30)
+            logger.info(f"Verify response: {response.text}")
             result = response.json()
 
-            # در نسخه v4، پاسخ در کلید `data` قرار دارد
-            if result.get('data', {}).get('code') == 100:
-                # پرداخت موفق
-                ref_id = result['data'].get('ref_id')
+            if result.get('data', {}).get('code') in [100, 101]:
+                ref_id = result['data'].get('ref_id', 123456)
                 transaction.status = 'success'
-                transaction.ref_id = ref_id
+                transaction.ref_id = str(ref_id)
                 transaction.save()
 
-                # فعال‌سازی اشتراک کاربر
                 subscription, created = UserSubscription.objects.get_or_create(user=transaction.user)
-
                 if subscription.expiry_date and subscription.expiry_date > timezone.now():
                     new_expiry = subscription.expiry_date + timedelta(days=30 * transaction.duration_months)
                 else:
@@ -192,25 +179,20 @@ class VerifyPaymentView(APIView):
                 subscription.is_active = True
                 subscription.save()
 
-                return redirect(f'http://localhost:3000/payment-result?status=success&ref_id={ref_id}')
+                return redirect(f'http://localhost:3000/subscriptions?status=success&ref_id={ref_id}')
             else:
-                # پرداخت ناموفق
                 transaction.status = 'failed'
                 transaction.save()
-                return redirect(f'http://localhost:3000/payment-result?status=failed')
+                return redirect('http://localhost:3000/subscriptions?status=failed')
 
         except Exception as e:
             logger.error(f"Verify error: {e}")
             return Response({'error': f'خطا در تایید پرداخت: {str(e)}'}, status=500)
 
 
-# ============================================
-# Mock Payment View (روش جایگزین برای تست)
-# ============================================
 class MockPaymentView(APIView):
     """
     شبیه‌سازی پرداخت (بدون نیاز به درگاه واقعی)
-    برای مواقعی که زرین‌پال در دسترس نیست یا مشکل دارد.
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -232,9 +214,7 @@ class MockPaymentView(APIView):
                 status=400
             )
 
-        # شبیه‌سازی پرداخت موفق
         subscription, created = UserSubscription.objects.get_or_create(user=request.user)
-
         if subscription.expiry_date and subscription.expiry_date > timezone.now():
             new_expiry = subscription.expiry_date + timedelta(days=30 * duration_months)
         else:
