@@ -7,6 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { getAlbumById, getTracksByAlbumId } from '@/utils/mockData';
+import { api } from '@/services/api';
 import Link from 'next/link';
 
 export default function AlbumPage() {
@@ -26,11 +27,48 @@ export default function AlbumPage() {
 
   useEffect(() => {
     if (!albumId) return;
-    const foundAlbum = getAlbumById(albumId);
-    if (foundAlbum) {
+
+    const fetchAlbumData = async () => {
+      let foundAlbum = null;
+      let foundTracks: any[] = [];
+
+      try {
+        const res = await api.get(`/music/albums/${albumId}/`).catch(() => null);
+        if (res?.data) {
+          const aData = res.data;
+          foundAlbum = {
+            id: aData.id.toString(),
+            title: aData.title,
+            artist: { id: aData.artist?.id?.toString() || '1', name: aData.artist?.display_name || aData.artist_name || 'Artist' },
+            coverImage: aData.cover_image || '/images/default-album.jpg',
+            releaseDate: aData.release_date || new Date().toISOString(),
+            genre: [aData.genre || 'Pop'],
+            description: aData.description || '',
+          };
+          if (aData.tracks && Array.isArray(aData.tracks)) {
+            foundTracks = aData.tracks.map((tItem: any) => ({
+              id: tItem.id.toString(),
+              title: tItem.title,
+              artist: { id: tItem.artist?.id?.toString() || '1', name: tItem.artist?.display_name || 'Artist' },
+              coverImage: tItem.cover_image || aData.cover_image || '/images/default-track.jpg',
+              duration: tItem.duration || 180,
+              listeners: tItem.listeners || 0,
+              streams: tItem.streams || 0,
+            }));
+          }
+        }
+      } catch (e) {}
+
+      if (!foundAlbum) {
+        foundAlbum = getAlbumById(albumId);
+        foundTracks = getTracksByAlbumId(albumId);
+      }
+
       setAlbum(foundAlbum);
-      setTracks(getTracksByAlbumId(albumId));
-    }
+      setTracks(foundTracks);
+    };
+
+    fetchAlbumData();
   }, [albumId]);
 
   if (!isClient) {
@@ -53,8 +91,8 @@ export default function AlbumPage() {
     );
   }
 
-  const totalDuration = tracks.reduce((sum, track) => sum + track.duration, 0);
-  const totalListeners = tracks.reduce((sum, track) => sum + track.listeners, 0);
+  const totalDuration = tracks.reduce((sum, track) => sum + (track.duration || 180), 0);
+  const totalListeners = tracks.reduce((sum, track) => sum + (track.listeners || 0), 0);
 
   return (
     <div className="flex h-screen bg-dark">
@@ -91,9 +129,6 @@ export default function AlbumPage() {
                 {album.description && (
                   <p className="text-text-secondary text-sm mt-3">{album.description}</p>
                 )}
-                {album.label && (
-                  <p className="text-text-secondary text-xs mt-1">Label: {album.label}</p>
-                )}
               </div>
             </div>
           </div>
@@ -128,11 +163,11 @@ export default function AlbumPage() {
                     </Link>
                   </div>
                   <div className="text-text-secondary text-sm hidden sm:block">
-                    👂 {track.listeners.toLocaleString()}
+                    👂 {(track.listeners || 0).toLocaleString()}
                   </div>
                   <div className="text-text-secondary text-sm font-mono">
-                    {Math.floor(track.duration / 60)}:
-                    {String(track.duration % 60).padStart(2, '0')}
+                    {Math.floor((track.duration || 180) / 60)}:
+                    {String((track.duration || 180) % 60).padStart(2, '0')}
                   </div>
                 </div>
               ))}
@@ -142,19 +177,19 @@ export default function AlbumPage() {
           {/* Album Stats */}
           <div className="mt-4 grid grid-cols-3 gap-4">
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-text-secondary text-xs">{t('album.total_duration')}</p>
+              <p className="text-text-secondary text-xs">{t('album.total_duration') || 'Total Duration'}</p>
               <p className="text-white font-bold">
                 {Math.floor(totalDuration / 60)}m {totalDuration % 60}s
               </p>
             </div>
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-text-secondary text-xs">{t('album.total_streams')}</p>
+              <p className="text-text-secondary text-xs">{t('album.total_streams') || 'Total Streams'}</p>
               <p className="text-white font-bold">
-                {tracks.reduce((sum, t) => sum + t.streams, 0).toLocaleString()}
+                {tracks.reduce((sum, t) => sum + (t.streams || 0), 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-text-secondary text-xs">{t('album.total_listeners')}</p>
+              <p className="text-text-secondary text-xs">{t('album.total_listeners') || 'Total Listeners'}</p>
               <p className="text-white font-bold">{totalListeners.toLocaleString()}</p>
             </div>
           </div>

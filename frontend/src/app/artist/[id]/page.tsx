@@ -11,6 +11,7 @@ import {
   getAlbumsByArtistId,
   getTracksByArtistId,
 } from '@/utils/mockData';
+import { api } from '@/services/api';
 import Link from 'next/link';
 import { CheckBadgeIcon } from '@heroicons/react/24/solid';
 
@@ -21,7 +22,6 @@ export default function ArtistPage() {
   const { t } = useLanguage();
   const artistId = params?.id as string;
 
-  // ✅ Fix hydration mismatch
   const [isClient, setIsClient] = useState(false);
   const [artist, setArtist] = useState<any>(null);
   const [albums, setAlbums] = useState<any[]>([]);
@@ -35,13 +35,71 @@ export default function ArtistPage() {
 
   useEffect(() => {
     if (!artistId) return;
-    const foundArtist = getArtistById(artistId);
-    if (foundArtist) {
+
+    const fetchArtistData = async () => {
+      let foundArtist = null;
+      let foundAlbums: any[] = [];
+      let foundTracks: any[] = [];
+
+      try {
+        const [userRes, albumsRes, tracksRes] = await Promise.all([
+          api.get(`/users/${artistId}/`).catch(() => null),
+          api.get(`/music/albums/?artist_id=${artistId}`).catch(() => null),
+          api.get(`/music/tracks/?artist_id=${artistId}`).catch(() => null),
+        ]);
+
+        if (userRes?.data) {
+          const u = userRes.data;
+          foundArtist = {
+            id: u.id.toString(),
+            name: u.display_name || u.username,
+            bio: u.bio || 'Artist on Music Player',
+            verified: u.verified || u.role === 'artist',
+            profileImage: u.profile_image || null,
+            totalListeners: u.total_listeners || u.followers_count || 0,
+            totalStreams: u.total_streams || 0,
+          };
+        }
+
+        if (albumsRes?.data) {
+          const rawA = Array.isArray(albumsRes.data) ? albumsRes.data : albumsRes.data.results || [];
+          foundAlbums = rawA.map((a: any) => ({
+            id: a.id.toString(),
+            title: a.title,
+            coverImage: a.cover_image || '/images/default-album.jpg',
+            releaseDate: a.release_date || new Date().toISOString(),
+            tracks: a.tracks || [],
+          }));
+        }
+
+        if (tracksRes?.data) {
+          const rawT = Array.isArray(tracksRes.data) ? tracksRes.data : tracksRes.data.results || [];
+          foundTracks = rawT.map((tr: any) => ({
+            id: tr.id.toString(),
+            title: tr.title,
+            artist: { id: artistId, name: foundArtist?.name || 'Artist' },
+            album: tr.album ? { id: tr.album.id.toString(), title: tr.album.title } : null,
+            coverImage: tr.cover_image || '/images/default-track.jpg',
+            duration: tr.duration || 180,
+            listeners: tr.listeners || 0,
+            streams: tr.streams || 0,
+          }));
+        }
+      } catch (e) {}
+
+      if (!foundArtist) {
+        foundArtist = getArtistById(artistId);
+        foundAlbums = getAlbumsByArtistId(artistId);
+        foundTracks = getTracksByArtistId(artistId);
+      }
+
       setArtist(foundArtist);
-      setAlbums(getAlbumsByArtistId(artistId));
-      setTracks(getTracksByArtistId(artistId));
-      setFollowersCount(foundArtist.totalListeners || 0);
-    }
+      setAlbums(foundAlbums);
+      setTracks(foundTracks);
+      setFollowersCount(foundArtist?.totalListeners || 0);
+    };
+
+    fetchArtistData();
   }, [artistId]);
 
   const handleFollow = () => {
@@ -49,12 +107,10 @@ export default function ArtistPage() {
     setFollowersCount(isFollowing ? followersCount - 1 : followersCount + 1);
   };
 
-  // ✅ Show nothing on server, then render on client
   if (!isClient) {
     return null;
   }
 
-  // ✅ Check user only after client-side hydration
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -117,50 +173,6 @@ export default function ArtistPage() {
                   <span>💿 {albums.length} {t('artist.albums') || 'albums'}</span>
                   <span>🎵 {tracks.length} {t('artist.tracks') || 'tracks'}</span>
                 </div>
-                {artist.socialLinks && (
-                  <div className="flex gap-3 mt-3">
-                    {artist.socialLinks.instagram && (
-                      <a
-                        href={`https://instagram.com/${artist.socialLinks.instagram}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-text-secondary hover:text-white transition"
-                      >
-                        <span className="text-lg">📷</span>
-                      </a>
-                    )}
-                    {artist.socialLinks.twitter && (
-                      <a
-                        href={`https://twitter.com/${artist.socialLinks.twitter}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-text-secondary hover:text-white transition"
-                      >
-                        <span className="text-lg">🐦</span>
-                      </a>
-                    )}
-                    {artist.socialLinks.soundcloud && (
-                      <a
-                        href={`https://soundcloud.com/${artist.socialLinks.soundcloud}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-text-secondary hover:text-white transition"
-                      >
-                        <span className="text-lg">🎧</span>
-                      </a>
-                    )}
-                    {artist.socialLinks.spotify && (
-                      <a
-                        href={`https://open.spotify.com/artist/${artist.socialLinks.spotify}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-text-secondary hover:text-white transition"
-                      >
-                        <span className="text-lg">🔊</span>
-                      </a>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -168,7 +180,7 @@ export default function ArtistPage() {
           {/* Albums Section */}
           {albums.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xl font-bold text-white mb-4">💿 {t('artist.albums')}</h2>
+              <h2 className="text-xl font-bold text-white mb-4">💿 {t('artist.albums') || 'Albums'}</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {albums.map((album) => (
                   <Link
@@ -185,7 +197,7 @@ export default function ArtistPage() {
                     </div>
                     <p className="text-white font-medium truncate text-sm">{album.title}</p>
                     <p className="text-text-secondary text-xs">
-                      {album.tracks.length} tracks • {new Date(album.releaseDate).getFullYear()}
+                      {album.tracks?.length || 0} tracks • {new Date(album.releaseDate).getFullYear()}
                     </p>
                   </Link>
                 ))}
@@ -196,7 +208,7 @@ export default function ArtistPage() {
           {/* Tracks Section */}
           {tracks.length > 0 && (
             <section>
-              <h2 className="text-xl font-bold text-white mb-4">🎵 {t('artist.popular_tracks')}</h2>
+              <h2 className="text-xl font-bold text-white mb-4">🎵 {t('artist.popular_tracks') || 'Popular Tracks'}</h2>
               <div className="space-y-2">
                 {tracks.slice(0, 10).map((track, index) => (
                   <div
@@ -233,11 +245,11 @@ export default function ArtistPage() {
                       </div>
                     </div>
                     <div className="text-text-secondary text-xs hidden sm:block">
-                      👂 {track.listeners.toLocaleString()}
+                      👂 {(track.listeners || 0).toLocaleString()}
                     </div>
                     <div className="text-text-secondary text-xs font-mono">
-                      {Math.floor(track.duration / 60)}:
-                      {String(track.duration % 60).padStart(2, '0')}
+                      {Math.floor((track.duration || 180) / 60)}:
+                      {String((track.duration || 180) % 60).padStart(2, '0')}
                     </div>
                   </div>
                 ))}
