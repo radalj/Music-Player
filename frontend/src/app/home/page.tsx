@@ -34,7 +34,6 @@ export default function HomePage() {
       setIsGoldUser(user.subscriptionType === 'gold');
       setIsPending(user.role === 'pending_artist');
 
-      // Fetch real data from API with fallback
       const fetchData = async () => {
         try {
           const [plRes, albRes, trkRes] = await Promise.all([
@@ -97,6 +96,10 @@ export default function HomePage() {
       fetchData();
     }
   }, [user, router]);
+
+  const handlePlayTrack = (trackId: string) => {
+    router.push(`/player/${trackId}`);
+  };
 
   if (!isClient) return null;
   if (!user) return null;
@@ -184,7 +187,6 @@ export default function HomePage() {
 
           {/* ===== Content Section ===== */}
           {isPending ? (
-            /* ----- Pending Artist: Show limited content ----- */
             <>
               <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-8 text-center">
                 <p className="text-text-secondary text-lg">🎵 {t('home.welcome')}</p>
@@ -198,14 +200,18 @@ export default function HomePage() {
                 <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="divide-y divide-gray-800">
                     {popularTracks.slice(0, 3).map((track, index) => (
-                      <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-[#242424] transition cursor-pointer">
+                      <div
+                        key={track.id}
+                        onClick={() => handlePlayTrack(track.id)}
+                        className="flex items-center gap-4 p-3 hover:bg-[#242424] transition cursor-pointer"
+                      >
                         <span className="text-text-secondary text-sm w-6 text-center font-mono">{index + 1}</span>
                         <div className="w-10 h-10 bg-gray-700 rounded-md overflow-hidden flex-shrink-0">
                           <img src={track.coverImage} alt={track.title} className="w-full h-full object-cover" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-white font-medium truncate">{track.title}</p>
-                          <p className="text-text-secondary text-sm truncate">{track.artist.name}</p>
+                          <p className="text-text-secondary text-sm truncate">{track.artist?.name || 'Artist'}</p>
                         </div>
                         <div className="text-text-secondary text-sm font-mono">{formatDuration(track.duration)}</div>
                       </div>
@@ -215,7 +221,6 @@ export default function HomePage() {
               </section>
             </>
           ) : (
-            /* ----- Regular User / Verified Artist: Show all content ----- */
             <>
               {/* Gold Early Access */}
               {isGoldUser && (
@@ -231,6 +236,7 @@ export default function HomePage() {
                     {popularTracks.slice(0, 3).map((track) => (
                       <div
                         key={track.id}
+                        onClick={() => handlePlayTrack(track.id)}
                         className="bg-[#2a2a2a] p-3 rounded-lg flex items-center gap-3 hover:bg-[#333] transition cursor-pointer flex-1 min-w-[150px]"
                       >
                         <div className="w-12 h-12 bg-gray-700 rounded-md overflow-hidden flex-shrink-0">
@@ -238,7 +244,7 @@ export default function HomePage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-white text-sm font-medium truncate">{track.title}</p>
-                          <p className="text-text-secondary text-xs truncate">{track.artist.name}</p>
+                          <p className="text-text-secondary text-xs truncate">{track.artist?.name || 'Artist'}</p>
                         </div>
                         <span className="text-yellow-400 text-xs">{t('home.gold_new_badge')}</span>
                       </div>
@@ -299,7 +305,11 @@ export default function HomePage() {
                 <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 overflow-hidden">
                   <div className="divide-y divide-gray-800">
                     {popularTracks.map((track, index) => (
-                      <div key={track.id} className="flex items-center gap-4 p-3 hover:bg-[#242424] transition cursor-pointer">
+                      <div
+                        key={track.id}
+                        onClick={() => handlePlayTrack(track.id)}
+                        className="flex items-center gap-4 p-3 hover:bg-[#242424] transition cursor-pointer"
+                      >
                         <span className="text-text-secondary text-sm w-6 text-center font-mono">{index + 1}</span>
                         <div className="w-10 h-10 bg-gray-700 rounded-md overflow-hidden flex-shrink-0">
                           <img src={track.coverImage} alt={track.title} className="w-full h-full object-cover" />

@@ -7,8 +7,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { getTrackById } from '@/utils/mockData';
+import { api } from '@/services/api';
 import Link from 'next/link';
 import { PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
+import toast from 'react-hot-toast';
 
 export default function PlayerPage() {
   const params = useParams();
@@ -26,24 +28,63 @@ export default function PlayerPage() {
     setIsClient(true);
   }, []);
 
+  // Fetch track and register stream play
   useEffect(() => {
     if (!trackId) return;
-    const foundTrack = getTrackById(trackId);
-    if (foundTrack) {
-      setTrack(foundTrack);
-    }
+
+    const loadTrack = async () => {
+      let fetchedTrack = null;
+      try {
+        const res = await api.get(`/music/tracks/${trackId}/`).catch(() => null);
+        if (res?.data) {
+          const tData = res.data;
+          fetchedTrack = {
+            id: tData.id.toString(),
+            title: tData.title,
+            artist: { id: tData.artist?.id?.toString() || '1', name: tData.artist?.display_name || 'Artist' },
+            coverImage: tData.cover_image || '/images/default-track.jpg',
+            duration: tData.duration || 180,
+            listeners: tData.listeners || 0,
+            streams: tData.streams || 0,
+            audioUrl: tData.audio_file || '/audio/track1.mp3',
+            lyrics: tData.lyrics || '',
+            album: tData.album ? { id: tData.album.id.toString(), title: tData.album.title } : undefined,
+            releaseDate: tData.release_date || new Date().toISOString(),
+          };
+        }
+      } catch (e) {}
+
+      if (!fetchedTrack) {
+        fetchedTrack = getTrackById(trackId);
+      }
+
+      setTrack(fetchedTrack);
+
+      // Register play stream with Backend API
+      try {
+        const playRes = await api.post(`/music/tracks/${trackId}/play/`).catch((err: any) => {
+          if (err.response?.status === 429) {
+            toast.error('Daily stream limit reached! Upgrade your plan for unlimited streaming.');
+          }
+          return null;
+        });
+        if (playRes?.data && fetchedTrack) {
+          setTrack((prev: any) =>
+            prev ? { ...prev, streams: playRes.data.streams, listeners: playRes.data.listeners } : prev
+          );
+        }
+      } catch (e) {}
+    };
+
+    loadTrack();
   }, [trackId]);
 
   // Initialize audio
   useEffect(() => {
     if (!track) return;
-    
+
     const audio = new Audio(track.audioUrl || '/audio/mock.mp3');
     setAudioRef(audio);
-
-    audio.addEventListener('loadedmetadata', () => {
-      // Audio loaded
-    });
 
     audio.addEventListener('ended', () => {
       setIsPlaying(false);
@@ -52,7 +93,6 @@ export default function PlayerPage() {
 
     return () => {
       audio.pause();
-      audio.removeEventListener('ended', () => {});
       audio.src = '';
     };
   }, [track]);
@@ -70,7 +110,7 @@ export default function PlayerPage() {
   // Update progress
   useEffect(() => {
     if (!audioRef) return;
-    
+
     const updateProgress = () => {
       if (audioRef.duration > 0) {
         setProgress((audioRef.currentTime / audioRef.duration) * 100);
@@ -78,7 +118,7 @@ export default function PlayerPage() {
     };
 
     audioRef.addEventListener('timeupdate', updateProgress);
-    
+
     return () => {
       audioRef.removeEventListener('timeupdate', updateProgress);
     };
@@ -104,9 +144,7 @@ export default function PlayerPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (!isClient) {
-    return null;
-  }
+  if (!isClient) return null;
 
   if (!user) {
     return (
@@ -155,10 +193,10 @@ export default function PlayerPage() {
                 </Link>
               )}
               <div className="flex items-center gap-4 mt-4 text-text-secondary text-sm">
-                <span>👂 {track.listeners.toLocaleString()}</span>
-                <span>▶️ {track.streams.toLocaleString()}</span>
-                <span>⏱️ {Math.floor(track.duration / 60)}:
-                  {String(track.duration % 60).padStart(2, '0')}</span>
+                <span>👂 {(track.listeners || 0).toLocaleString()}</span>
+                <span>▶️ {(track.streams || 0).toLocaleString()}</span>
+                <span>⏱️ {Math.floor((track.duration || 180) / 60)}:
+                  {String((track.duration || 180) % 60).padStart(2, '0')}</span>
               </div>
 
               {/* Progress Bar */}
@@ -176,7 +214,7 @@ export default function PlayerPage() {
                     className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
                   />
                   <span className="text-xs text-text-secondary font-mono">
-                    {formatTime(track.duration)}
+                    {formatTime(track.duration || 180)}
                   </span>
                 </div>
               </div>
@@ -185,7 +223,7 @@ export default function PlayerPage() {
               <div className="flex items-center gap-4 mt-6">
                 <button
                   onClick={togglePlay}
-                  className="w-14 h-14 bg-primary rounded-full flex items-center justify-center hover:bg-opacity-80 transition"
+                  className="w-14 h-14 bg-primary rounded-full flex items-center justify-center hover:bg-opacity-80 transition cursor-pointer"
                 >
                   {isPlaying ? (
                     <PauseIcon className="w-7 h-7 text-black" />
@@ -226,10 +264,6 @@ export default function PlayerPage() {
                 </div>
               )}
               <div>
-                <p className="text-text-secondary">Genre</p>
-                <p className="text-white">{track.genre?.join(', ') || 'Various'}</p>
-              </div>
-              <div>
                 <p className="text-text-secondary">Release Date</p>
                 <p className="text-white">
                   {new Date(track.releaseDate).toLocaleDateString()}
@@ -238,7 +272,7 @@ export default function PlayerPage() {
               <div>
                 <p className="text-text-secondary">Duration</p>
                 <p className="text-white">
-                  {Math.floor(track.duration / 60)}m {track.duration % 60}s
+                  {Math.floor((track.duration || 180) / 60)}m {(track.duration || 180) % 60}s
                 </p>
               </div>
             </div>
@@ -253,7 +287,6 @@ export default function PlayerPage() {
           </div>
         </div>
       </main>
-      {/* Main Player at bottom */}
       <Player />
     </div>
   );
