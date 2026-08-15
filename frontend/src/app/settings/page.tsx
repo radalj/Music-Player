@@ -13,14 +13,11 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-// ---------- Types ----------
 interface Settings {
   notificationsEnabled: boolean;
   soundEnabled: boolean;
-  // language removed – now managed globally by LanguageContext
 }
 
-// ---------- Helper Functions ----------
 const defaultSettings: Settings = {
   notificationsEnabled: true,
   soundEnabled: true,
@@ -53,7 +50,6 @@ const saveSettings = (userId: string, settings: Settings) => {
   }
 };
 
-// ---------- Main Component ----------
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { t, language, setLanguage } = useLanguage();
@@ -69,7 +65,6 @@ export default function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load settings when user changes
   useEffect(() => {
     if (user) {
       setSettings(loadSettings(user.id));
@@ -78,14 +73,12 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  // Save settings whenever they change (only if user exists)
   useEffect(() => {
     if (user) {
       saveSettings(user.id, settings);
     }
   }, [settings, user]);
 
-  // ---------- Handlers ----------
   const handleToggle = (key: keyof Settings, value: boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     toast.success(`${key} ${value ? 'enabled' : 'disabled'}`);
@@ -97,7 +90,9 @@ export default function SettingsPage() {
   };
 
   const handleUpgrade = () => {
-    toast(t('settings.upgrade_placeholder') || 'Upgrade page will be available in Phase 2.');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/subscriptions';
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -138,7 +133,6 @@ export default function SettingsPage() {
     }, 1000);
   };
 
-  // If not logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -147,7 +141,6 @@ export default function SettingsPage() {
     );
   }
 
-  // Subscription info (only used if user is listener)
   const subLabels: Record<string, { label: string; color: string; icon: string }> = {
     free: { label: t('subscription.free') || 'Free', color: 'text-gray-400', icon: '🎵' },
     silver: { label: t('subscription.silver') || 'Silver', color: 'text-gray-300', icon: '🥈' },
@@ -163,7 +156,6 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold text-white mb-6">{t('settings.title')}</h1>
 
           <div className="space-y-6">
-            {/* ---------- Notifications ---------- */}
             <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <BellIcon className="w-5 h-5 text-primary" />
@@ -201,7 +193,6 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            {/* ---------- Language ---------- */}
             <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <GlobeAltIcon className="w-5 h-5 text-primary" />
@@ -231,7 +222,6 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            {/* ---------- Subscription (only for listeners) ---------- */}
             {user.role === 'listener' && (
               <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -248,7 +238,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={handleUpgrade}
-                    className="px-6 py-2 bg-primary text-white font-medium rounded-full hover:bg-opacity-80 transition"
+                    className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition"
                   >
                     {user.subscriptionType === 'gold' ? t('settings.manage') : t('settings.upgrade')}
                   </button>
@@ -261,7 +251,6 @@ export default function SettingsPage() {
               </section>
             )}
 
-            {/* ---------- Delete Account ---------- */}
             <section className="bg-[#1a1a1a] border border-red-800/50 rounded-xl p-6">
               <h2 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
                 <TrashIcon className="w-5 h-5" />
@@ -281,7 +270,6 @@ export default function SettingsPage() {
         </div>
       </main>
 
-      {/* ---------- Delete Confirmation Modal ---------- */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1a1a] rounded-xl max-w-md w-full border border-gray-800 p-6">
