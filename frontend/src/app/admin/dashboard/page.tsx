@@ -5,16 +5,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
+import { api } from '@/services/api';
 import {
   TicketIcon,
-  UserGroupIcon,
   CurrencyDollarIcon,
   Cog6ToothIcon,
   CheckIcon,
   XMarkIcon,
-  EyeIcon,
 } from '@heroicons/react/24/outline';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 
 // ---------- Types ----------
@@ -52,91 +51,9 @@ interface FinancialRecord {
 interface SubscriptionPrices {
   silver: number;
   gold: number;
+  silverId?: number;
+  goldId?: number;
 }
-
-// ---------- Helpers ----------
-const generateId = () => Math.random().toString(36).substring(2, 10);
-
-const loadFromStorage = <T,>(key: string, fallback: T): T => {
-  if (typeof window === 'undefined') return fallback;
-  try {
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed ?? fallback;
-    }
-  } catch (e) { /* ignore */ }
-  return fallback;
-};
-
-const saveToStorage = (key: string, data: any) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
-// ---------- Mock Data Initialization ----------
-const getInitialVerificationRequests = (): VerificationRequest[] => [
-  {
-    id: 'v1',
-    artistName: 'Neon Pulse',
-    email: 'neon@example.com',
-    portfolio: 'https://soundcloud.com/neon-pulse',
-    status: 'pending',
-    submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'v2',
-    artistName: 'Echo Wave',
-    email: 'echo@example.com',
-    portfolio: 'https://www.instagram.com/echowave/',
-    status: 'pending',
-    submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const getInitialTickets = (): Ticket[] => [
-  {
-    id: 't1',
-    userId: 'user1',
-    userName: 'John Doe',
-    subject: 'Payment issue',
-    message: 'I tried to upgrade but got an error.',
-    status: 'open',
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    responses: [],
-  },
-  {
-    id: 't2',
-    userId: 'user2',
-    userName: 'Jane Smith',
-    subject: 'Account deletion request',
-    message: 'Please delete my account.',
-    status: 'responded',
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    responses: [{ from: 'support', message: 'We will process your request shortly.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }],
-  },
-];
-
-const getInitialFinancialRecords = (): FinancialRecord[] => [
-  {
-    artistId: 'artist1',
-    artistName: 'The Midnight Waves',
-    uniqueListeners: 4520,
-    totalStreams: 124500,
-    calculatedPayout: 234.56,
-    status: 'pending',
-    month: '2024-06',
-  },
-  {
-    artistId: 'artist2',
-    artistName: 'Luna Star',
-    uniqueListeners: 3120,
-    totalStreams: 87600,
-    calculatedPayout: 187.20,
-    status: 'settled',
-    month: '2024-06',
-  },
-];
 
 const defaultPrices: SubscriptionPrices = { silver: 9.99, gold: 19.99 };
 
@@ -145,21 +62,17 @@ export default function AdminDashboardPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
 
-  // ---------- State ----------
   const [activeTab, setActiveTab] = useState<'tickets' | 'accounting' | 'settings'>('tickets');
 
-  const [verifications, setVerifications] = useState<VerificationRequest[]>(() =>
-    loadFromStorage('admin_verifications', getInitialVerificationRequests())
-  );
-  const [tickets, setTickets] = useState<Ticket[]>(() =>
-    loadFromStorage('admin_tickets', getInitialTickets())
-  );
-  const [financials, setFinancials] = useState<FinancialRecord[]>(() =>
-    loadFromStorage('admin_financials', getInitialFinancialRecords())
-  );
-  const [prices, setPrices] = useState<SubscriptionPrices>(() =>
-    loadFromStorage('subscription_prices', defaultPrices)
-  );
+  const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [financials, setFinancials] = useState<FinancialRecord[]>([]);
+  const [prices, setPrices] = useState<SubscriptionPrices>(defaultPrices);
+  const [userDist, setUserDist] = useState<{ name: string; value: number }[]>([
+    { name: 'Free', value: 10 },
+    { name: 'Silver', value: 5 },
+    { name: 'Gold', value: 2 },
+  ]);
 
   // Modal states
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -167,82 +80,163 @@ export default function AdminDashboardPage() {
   const [showVerificationDetail, setShowVerificationDetail] = useState<VerificationRequest | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Save data on change
+  // ---------- Load API Data ----------
+  const loadData = async () => {
+    try {
+      // 1. Pending artists
+      const pendingRes = await api.get('/users/pending-artists/').catch(() => null);
+      if (pendingRes?.data && Array.isArray(pendingRes.data)) {
+        setVerifications(
+          pendingRes.data.map((item: any) => ({
+            id: item.id.toString(),
+            artistName: item.display_name || item.username,
+            email: item.email,
+            portfolio: item.portfolio || 'N/A',
+            status: item.verified ? 'approved' : item.awaiting_approval ? 'pending' : 'rejected',
+            submittedAt: new Date().toISOString(),
+          }))
+        );
+      }
+
+      // 2. Support Tickets
+      const ticketsRes = await api.get('/tickets/tickets/').catch(() => null);
+      if (ticketsRes?.data) {
+        const rawTickets = Array.isArray(ticketsRes.data) ? ticketsRes.data : ticketsRes.data.results || [];
+        setTickets(
+          rawTickets.map((tItem: any) => ({
+            id: tItem.id.toString(),
+            userId: tItem.user ? tItem.user.toString() : '',
+            userName: tItem.user_name || tItem.user_email || 'User',
+            subject: tItem.subject,
+            message: tItem.subject,
+            status: tItem.status === 'replied' ? 'responded' : tItem.status,
+            createdAt: tItem.created_at,
+            responses: (tItem.replies || []).map((r: any) => ({
+              from: r.sender_name || r.sender_role,
+              message: r.message,
+              timestamp: r.created_at,
+            })),
+          }))
+        );
+      }
+
+      // 3. Financial audit
+      const finRes = await api.get('/reports/financial/monthly/').catch(() => null);
+      if (finRes?.data && finRes.data.artists) {
+        setFinancials(
+          finRes.data.artists.map((a: any) => ({
+            artistId: a.artist_id.toString(),
+            artistName: a.artist_name,
+            uniqueListeners: a.unique_listeners,
+            totalStreams: a.total_streams,
+            calculatedPayout: a.calculated_payout,
+            status: a.status,
+            month: finRes.data.month,
+          }))
+        );
+      }
+
+      // 4. Plans & Prices
+      const plansRes = await api.get('/subscriptions/plans/').catch(() => null);
+      if (plansRes?.data) {
+        const plans = Array.isArray(plansRes.data) ? plansRes.data : plansRes.data.results || [];
+        const silverP = plans.find((p: any) => p.name === 'silver');
+        const goldP = plans.find((p: any) => p.name === 'gold');
+        setPrices({
+          silver: silverP ? parseFloat(silverP.price) : 9.99,
+          gold: goldP ? parseFloat(goldP.price) : 19.99,
+          silverId: silverP?.id,
+          goldId: goldP?.id,
+        });
+      }
+
+      // 5. User Distribution Chart
+      const distRes = await api.get('/reports/revenue/subscription/').catch(() => null);
+      if (distRes?.data && distRes.data.subscription_distribution) {
+        setUserDist(
+          distRes.data.subscription_distribution.map((d: any) => ({
+            name: d.plan__name ? d.plan__name.toUpperCase() : 'FREE',
+            value: d.count,
+          }))
+        );
+      }
+    } catch (e) {
+      console.error('Error fetching admin dashboard data:', e);
+    }
+  };
+
   useEffect(() => {
-    saveToStorage('admin_verifications', verifications);
-  }, [verifications]);
-  useEffect(() => {
-    saveToStorage('admin_tickets', tickets);
-  }, [tickets]);
-  useEffect(() => {
-    saveToStorage('admin_financials', financials);
-  }, [financials]);
-  useEffect(() => {
-    saveToStorage('subscription_prices', prices);
-  }, [prices]);
+    loadData();
+  }, []);
 
   // ---------- Handlers ----------
-  const handleVerify = (id: string, action: 'approve' | 'reject') => {
-    setVerifications(prev =>
-      prev.map(v =>
-        v.id === id
-          ? { ...v, status: action === 'approve' ? 'approved' : 'rejected', reason: action === 'reject' ? rejectionReason || 'No reason provided' : undefined }
-          : v
-      )
-    );
-    toast.success(`Artist ${action === 'approve' ? 'approved' : 'rejected'}`);
+  const handleVerify = async (id: string, action: 'approve' | 'reject') => {
+    try {
+      if (action === 'approve') {
+        await api.post(`/users/artists/${id}/approve/`);
+      } else {
+        await api.post(`/users/artists/${id}/reject/`, { reason: rejectionReason });
+      }
+      toast.success(`Artist ${action === 'approve' ? 'approved' : 'rejected'}`);
+      loadData();
+    } catch (e) {
+      toast.error(`Action failed`);
+    }
     setShowVerificationDetail(null);
     setRejectionReason('');
   };
 
-  const handleReplyTicket = (ticketId: string) => {
-    const ticket = tickets.find(t => t.id === ticketId);
-    if (ticket?.status === 'closed') {
-      toast.error('This ticket is closed and cannot be replied to.');
-      return;
-    }
+  const handleReplyTicket = async (ticketId: string) => {
     if (!replyText.trim()) {
       toast.error('Reply cannot be empty.');
       return;
     }
-    setTickets(prev =>
-      prev.map(t =>
-        t.id === ticketId
-          ? {
-              ...t,
-              status: 'responded',
-              responses: [...t.responses, { from: 'support', message: replyText.trim(), timestamp: new Date().toISOString() }],
-            }
-          : t
-      )
-    );
-    setReplyText('');
-    setSelectedTicket(null);
-    toast.success('Reply sent.');
+    try {
+      await api.post(`/tickets/tickets/${ticketId}/reply/`, { message: replyText.trim() });
+      toast.success('Reply sent successfully.');
+      setReplyText('');
+      setSelectedTicket(null);
+      loadData();
+    } catch (e) {
+      toast.error('Failed to send reply');
+    }
   };
 
-  const handleCloseTicket = (ticketId: string) => {
-    setTickets(prev =>
-      prev.map(t => (t.id === ticketId ? { ...t, status: 'closed' } : t))
-    );
-    toast.success('Ticket closed.');
+  const handleCloseTicket = async (ticketId: string) => {
+    try {
+      await api.patch(`/tickets/tickets/${ticketId}/close/`);
+      toast.success('Ticket closed.');
+      loadData();
+    } catch (e) {
+      toast.error('Failed to close ticket');
+    }
   };
 
-  const handleSettlePayment = (artistId: string) => {
-    setFinancials(prev =>
-      prev.map(f =>
-        f.artistId === artistId ? { ...f, status: 'settled' } : f
-      )
-    );
-    toast.success('Payment settled.');
+  const handleSettlePayment = async (artistId: string) => {
+    try {
+      await api.post(`/reports/financial/settle/${artistId}/`);
+      toast.success('Payment marked as settled.');
+      loadData();
+    } catch (e) {
+      toast.error('Settlement failed');
+    }
   };
 
-  const handlePriceUpdate = () => {
-    // In real app, this would be sent to API
-    toast.success('Prices updated successfully!');
+  const handlePriceUpdate = async () => {
+    try {
+      if (prices.silverId) {
+        await api.patch(`/subscriptions/plans/${prices.silverId}/`, { price: prices.silver });
+      }
+      if (prices.goldId) {
+        await api.patch(`/subscriptions/plans/${prices.goldId}/`, { price: prices.gold });
+      }
+      toast.success('Prices updated successfully in DB!');
+      loadData();
+    } catch (e) {
+      toast.error('Failed to update prices');
+    }
   };
 
-  // ---------- Authorization ----------
   if (!user) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
@@ -260,15 +254,7 @@ export default function AdminDashboardPage() {
   }
 
   const isAdmin = user.role === 'admin';
-
-  // ---------- Compute stats for charts ----------
-  const userDistribution = [
-    { name: 'Free', value: 120 },
-    { name: 'Silver', value: 45 },
-    { name: 'Gold', value: 20 },
-  ];
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658'];
-
   const totalRevenue = financials.reduce((acc, f) => acc + f.calculatedPayout, 0);
   const totalStreams = financials.reduce((acc, f) => acc + f.totalStreams, 0);
 
@@ -317,6 +303,7 @@ export default function AdminDashboardPage() {
           </tbody>
         </table>
       </div>
+
       {/* Ticket detail modal */}
       {selectedTicket && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -327,8 +314,6 @@ export default function AdminDashboardPage() {
             </div>
             <p className="text-text-secondary"><strong>User:</strong> {selectedTicket.userName}</p>
             <p className="text-text-secondary"><strong>Subject:</strong> {selectedTicket.subject}</p>
-            <p className="text-text-secondary mt-2"><strong>Message:</strong></p>
-            <p className="text-white bg-[#2a2a2a] p-3 rounded">{selectedTicket.message}</p>
             {selectedTicket.responses.length > 0 && (
               <div className="mt-4">
                 <p className="text-text-secondary"><strong>Responses:</strong></p>
@@ -410,13 +395,13 @@ export default function AdminDashboardPage() {
                       Review
                     </button>
                   )}
-                  {v.status !== 'pending' && <span className="text-xs text-text-secondary">Done</span>}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
       {/* Verification detail modal */}
       {showVerificationDetail && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -424,7 +409,7 @@ export default function AdminDashboardPage() {
             <h3 className="text-xl font-bold text-white mb-2">Verify Artist</h3>
             <p><strong>Artist:</strong> {showVerificationDetail.artistName}</p>
             <p><strong>Email:</strong> {showVerificationDetail.email}</p>
-            <p><strong>Portfolio:</strong> <a href={showVerificationDetail.portfolio} target="_blank" className="text-primary underline">{showVerificationDetail.portfolio}</a></p>
+            <p><strong>Portfolio:</strong> {showVerificationDetail.portfolio}</p>
             <div className="mt-4">
               <textarea
                 placeholder="Rejection reason (if rejecting)"
@@ -504,7 +489,6 @@ export default function AdminDashboardPage() {
           </tbody>
         </table>
       </div>
-      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 text-center">
           <p className="text-text-secondary text-sm">Total Revenue</p>
@@ -552,11 +536,10 @@ export default function AdminDashboardPage() {
           onClick={handlePriceUpdate}
           className="mt-4 px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
         >
-          Update Prices
+          Update Prices in DB
         </button>
       </div>
 
-      {/* Charts */}
       <div className="mt-6">
         <h3 className="text-lg font-semibold text-white mb-4">📈 User Distribution</h3>
         <div className="flex flex-wrap gap-8">
@@ -564,7 +547,7 @@ export default function AdminDashboardPage() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={userDistribution}
+                  data={userDist}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -573,7 +556,7 @@ export default function AdminDashboardPage() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {userDistribution.map((entry, index) => (
+                  {userDist.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -597,21 +580,18 @@ export default function AdminDashboardPage() {
     </div>
   );
 
-  // ---------- Main Layout ----------
   return (
     <div className="flex h-screen bg-dark">
-      {/* Use main Sidebar (it will show admin dashboard link) */}
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-28">
         <div className="max-w-6xl mx-auto p-6">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold text-white">🔧 Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-white">🔧 Support & Admin Dashboard</h1>
             <span className="text-text-secondary text-sm">
               {user.role === 'admin' ? 'Admin' : 'Supporter'} access
             </span>
           </div>
 
-          {/* Custom sub-navigation (tabs) */}
           <div className="flex space-x-2 mb-6 border-b border-gray-800 pb-2">
             <button
               onClick={() => setActiveTab('tickets')}
@@ -641,7 +621,6 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
-          {/* Content */}
           <div className="bg-[#0f0f0f] rounded-xl border border-gray-800 p-6">
             {activeTab === 'tickets' && renderTicketsTab()}
             {activeTab === 'accounting' && renderAccountingTab()}
