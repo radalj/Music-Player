@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { CheckBadgeIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { mediaUrl } from '@/utils/media';
+import { api } from '@/services/api';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -256,6 +257,7 @@ export default function ProfilePage() {
     email: '',
     birthDate: '',
     gender: '',
+    bio: '',
   });
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -295,6 +297,7 @@ export default function ProfilePage() {
           email: userData.email || '',
           birthDate: formatDate(userData.birth_date),
           gender: userData.gender || '',
+          bio: userData.bio || '',
         });
 
         // 2. دریافت اشتراک
@@ -419,28 +422,27 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const token = getToken();
-      if (!token) throw new Error('No token');
-
-      const formData = new FormData();
-      formData.append('display_name', editData.displayName);
-      formData.append('email', editData.email);
-      if (editData.birthDate) formData.append('birth_date', editData.birthDate);
-      if (editData.gender) formData.append('gender', editData.gender);
-      if (profileFile) formData.append('profile_image', profileFile);
-
-      const res = await fetch(`${API_URL}/users/profile/`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || err.error || 'Update failed');
+      let updated;
+      if (profileFile) {
+        const formData = new FormData();
+        formData.append('display_name', editData.displayName);
+        formData.append('email', editData.email);
+        if (editData.birthDate) formData.append('birth_date', editData.birthDate);
+        if (editData.gender) formData.append('gender', editData.gender);
+        formData.append('bio', editData.bio || '');
+        formData.append('profile_image', profileFile);
+        const res = await api.patch('/users/profile/', formData);
+        updated = res.data;
+      } else {
+        const res = await api.patch('/users/profile/', {
+          display_name: editData.displayName,
+          email: editData.email,
+          birth_date: editData.birthDate || null,
+          gender: editData.gender || null,
+          bio: editData.bio || '',
+        });
+        updated = res.data;
       }
-      const updated = await res.json();
       setLocalUser(updated);
       updateUser({
         ...updated,
@@ -452,7 +454,8 @@ export default function ProfilePage() {
       toast.success(t('profile.update_success'));
       setIsEditing(false);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update profile');
+      const msg = error.response?.data?.detail || error.response?.data?.error || error.message;
+      toast.error(msg || 'Failed to update profile');
     }
   };
 
@@ -486,11 +489,86 @@ export default function ProfilePage() {
   // ---------- هنرمند ----------
   if (localUser.role === 'pending_artist' || localUser.role === 'artist') {
     const isPending = localUser.role === 'pending_artist';
+    const isOwnArtist = String(authUser?.id) === String(localUser.id);
+    const artistPlan = (
+      subscription?.plan?.name ||
+      localUser.subscription_type ||
+      authUser?.subscriptionType ||
+      'free'
+    ).toLowerCase();
+    const artistCanUpload = artistPlan === 'silver' || artistPlan === 'gold';
     return (
       <div className="flex h-screen bg-dark">
         <Sidebar />
         <main className="flex-1 overflow-y-auto pb-28">
           <div className="max-w-5xl mx-auto p-6">
+            {isOwnArtist && (
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  data-testid="edit-profile"
+                  className="px-6 py-2 rounded-full font-medium bg-[#2a2a2a] text-white border border-gray-600 hover:bg-[#333] transition"
+                >
+                  ✏️ {t('profile.edit_profile')}
+                </button>
+              </div>
+            )}
+            {isEditing && isOwnArtist && (
+              <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6 mb-6">
+                <h2 className="text-xl font-bold text-white mb-4">✏️ {t('profile.edit_information')}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.profile_photo')}</label>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      data-testid="profile-photo-input"
+                      disabled={!artistCanUpload}
+                      onChange={(e) => handlePhotoSelect(e.target.files?.[0] || null)}
+                      className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-1 file:text-black disabled:opacity-50"
+                    />
+                    {!artistCanUpload && (
+                      <p className="text-yellow-400 text-xs mt-1">{t('profile.photo_not_allowed')}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.display_name')}</label>
+                    <input
+                      type="text"
+                      value={editData.displayName}
+                      onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
+                      className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.email')}</label>
+                    <input
+                      type="email"
+                      value={editData.email}
+                      onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                      className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.bio')}</label>
+                    <textarea
+                      value={editData.bio}
+                      onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                      rows={3}
+                      className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-3 md:col-span-2">
+                    <button onClick={handleSaveEdit} className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition">
+                      💾 {t('profile.save_changes')}
+                    </button>
+                    <button onClick={() => setIsEditing(false)} className="px-6 py-2 bg-[#2a2a2a] text-white border border-gray-600 rounded-full hover:bg-[#333] transition">
+                      ❌ {t('profile.cancel')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <ArtistProfileContent
               user={localUser}
               isPending={isPending}
@@ -684,6 +762,15 @@ export default function ProfilePage() {
                     <option value="non-binary">{t('profile.non_binary')}</option>
                     <option value="other">{t('profile.other')}</option>
                   </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.bio')}</label>
+                  <textarea
+                    value={editData.bio}
+                    onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                    rows={3}
+                    className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
+                  />
                 </div>
                 <div className="flex items-end gap-3 md:col-span-2">
                   <button

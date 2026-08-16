@@ -38,7 +38,9 @@ const authFetch = async (url: string, options: RequestInit = {}) => {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || errorData.error || `HTTP ${response.status}`);
   }
-  return response.json();
+  if (response.status === 204) return null;
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 };
 
 // ---------- Types ----------
@@ -334,6 +336,7 @@ export default function PlaylistsPage() {
                         </button>
                         <button
                           onClick={() => handleDelete(playlist.id)}
+                          data-testid="delete-playlist"
                           className="p-1.5 text-text-secondary hover:text-red-400 transition rounded"
                         >
                           <TrashIcon className="w-4 h-4" />

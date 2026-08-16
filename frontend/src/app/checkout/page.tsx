@@ -7,15 +7,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { api } from '@/services/api';
+import { extractPlans, planPrice, CatalogPlan } from '@/utils/plans';
 import { SubscriptionType } from '@/types';
 import { CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
-
-interface Plan {
-  id: number;
-  name: 'free' | 'silver' | 'gold';
-  price: string | number;
-}
 
 function onlyDigits(value: string) {
   return value.replace(/\D/g, '');
@@ -59,7 +54,7 @@ function CheckoutForm() {
   const months = Number(searchParams.get('months') || 1);
   const durationMonths = [1, 3, 6, 12].includes(months) ? months : 1;
 
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<CatalogPlan[]>([]);
   const [cardName, setCardName] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -67,18 +62,20 @@ function CheckoutForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    api
-      .get('/subscriptions/plans/')
-      .then((res) => {
-        const raw = Array.isArray(res.data) ? res.data : res.data.results || [];
-        setPlans(raw);
-      })
-      .catch(() => {});
+    const loadPlans = () => {
+      api
+        .get('/subscriptions/plans/')
+        .then((res) => setPlans(extractPlans(res.data)))
+        .catch(() => {});
+    };
+    loadPlans();
+    const onFocus = () => loadPlans();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   const total = useMemo(() => {
-    const selected = plans.find((item) => item.name === plan);
-    const monthly = selected ? Number(selected.price) || 0 : plan === 'gold' ? 19.99 : 9.99;
+    const monthly = planPrice(plans, plan);
     return (monthly * durationMonths).toFixed(2);
   }, [plans, plan, durationMonths]);
 

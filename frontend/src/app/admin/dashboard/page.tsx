@@ -224,14 +224,20 @@ export default function AdminDashboardPage() {
 
   const handlePriceUpdate = async () => {
     try {
-      if (prices.silverId) {
-        await api.patch(`/subscriptions/plans/${prices.silverId}/`, { price: prices.silver });
-      }
-      if (prices.goldId) {
-        await api.patch(`/subscriptions/plans/${prices.goldId}/`, { price: prices.gold });
-      }
-      toast.success('Prices updated successfully in DB!');
-      loadData();
+      const res = await api.patch('/subscriptions/plans/prices/', {
+        silver: prices.silver,
+        gold: prices.gold,
+      });
+      const plans = Array.isArray(res.data?.plans) ? res.data.plans : [];
+      const silverP = plans.find((p: any) => p.name === 'silver');
+      const goldP = plans.find((p: any) => p.name === 'gold');
+      setPrices({
+        silver: silverP ? parseFloat(silverP.price) : prices.silver,
+        gold: goldP ? parseFloat(goldP.price) : prices.gold,
+        silverId: silverP?.id ?? prices.silverId,
+        goldId: goldP?.id ?? prices.goldId,
+      });
+      toast.success('Prices updated for all users.');
     } catch (e) {
       toast.error('Failed to update prices');
     }
@@ -532,11 +538,16 @@ export default function AdminDashboardPage() {
             />
           </div>
         </div>
+        <p className="text-text-secondary text-sm mt-3">
+          New prices apply immediately to every user on the subscriptions and checkout pages.
+        </p>
         <button
           onClick={handlePriceUpdate}
-          className="mt-4 px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition"
+          disabled={!isAdmin}
+          data-testid="update-plan-prices"
+          className="mt-4 px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition disabled:opacity-50"
         >
-          Update Prices in DB
+          Update Prices for All Users
         </button>
       </div>
 

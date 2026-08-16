@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { api } from '@/services/api';
+import { extractPlans, planPrice } from '@/utils/plans';
 import { SubscriptionType } from '@/types';
 import { CheckIcon, SparklesIcon, CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
@@ -25,11 +26,7 @@ export default function SubscriptionsPage() {
   const router = useRouter();
 
   const [isMounted, setIsMounted] = useState(false);
-  const [plans, setPlans] = useState<Plan[]>([
-    { id: 1, name: 'free', price: 0, max_playlists: 6, max_streams_per_day: 60 },
-    { id: 2, name: 'silver', price: 9.99, max_playlists: 100, max_streams_per_day: 100 },
-    { id: 3, name: 'gold', price: 19.99, max_playlists: -1, max_streams_per_day: -1 },
-  ]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('silver');
   const [durationMonths, setDurationMonths] = useState<number>(1);
   const [currentPlanName, setCurrentPlanName] = useState<string>('free');
@@ -61,36 +58,30 @@ export default function SubscriptionsPage() {
       .catch(() => {});
   }, [user?.id]);
 
-  // Load plan prices from API
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const res = await api.get('/subscriptions/plans/').catch(() => null);
-        if (res?.data) {
-          const raw = Array.isArray(res.data) ? res.data : res.data.results || [];
-          if (raw.length > 0) {
-            setPlans(
-              raw.map((p: any) => ({
-                id: p.id,
-                name: p.name,
-                price: parseFloat(p.price) || 0,
-                max_playlists: p.max_playlists,
-                max_streams_per_day: p.max_streams_per_day,
-              }))
-            );
-          }
-        }
+        const res = await api.get('/subscriptions/plans/');
+        const mapped = extractPlans(res.data).map((p) => ({
+          id: p.id,
+          name: p.name as Plan['name'],
+          price: p.price,
+          max_playlists: p.max_playlists ?? 0,
+          max_streams_per_day: p.max_streams_per_day ?? 0,
+        }));
+        if (mapped.length > 0) setPlans(mapped);
       } catch (e) {
         console.error('Error loading plans:', e);
       }
     };
     fetchPlans();
+    const onFocus = () => fetchPlans();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
   const getPlanPrice = (planName: string) => {
-    const p = plans.find((item) => item.name === planName);
-    const monthlyPrice = p ? typeof p.price === 'number' ? p.price : parseFloat(p.price) : 0;
-    return (monthlyPrice * durationMonths).toFixed(2);
+    return (planPrice(plans, planName) * durationMonths).toFixed(2);
   };
 
   const handleUpgrade = () => {

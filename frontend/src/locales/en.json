@@ -247,6 +247,7 @@
     "photo_updated": "Profile photo updated",
     "photo_not_allowed": "Free plan cannot upload a profile photo. Upgrade to Silver or Gold.",
     "choose_photo": "Choose photo",
+    "bio": "Bio",
     "free_limitation": "Free users cannot change profile picture. Upgrade to Gold or Silver in Settings.",
     "activity_stats": "Activity Stats",
     "following": "Following",
@@ -276,6 +277,7 @@
     "app_name": "MusicApp",
     "home": "Home",
     "profile": "Profile",
+    "users": "Users",
     "playlists": "Playlists",
     "albums_songs": "Albums & Songs",
     "notifications": "Notifications",
@@ -286,5 +288,19 @@
     "free_plan": "Free Plan",
     "silver_plan": "Silver Plan",
     "gold_plan": "Gold Plan"
+  },
+  "users": {
+    "title": "People on MusicApp",
+    "subtitle": "Discover listeners, artists and follow the ones you like.",
+    "search_placeholder": "Search by name or username...",
+    "search": "Search",
+    "all_roles": "All roles",
+    "listeners": "Listeners",
+    "artists": "Artists",
+    "admins": "Admins",
+    "empty": "No users found.",
+    "login_required": "Please login to see other users.",
+    "not_found": "User not found.",
+    "view_works": "View works"
   }
 }

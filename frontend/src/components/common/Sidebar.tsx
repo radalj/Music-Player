@@ -11,6 +11,7 @@ import {
   QueueListIcon,
   Cog6ToothIcon,
   BellIcon,
+  UserGroupIcon,
   ChartBarIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline';
@@ -39,6 +40,7 @@ export const Sidebar = () => {
   const navItems = [
     { icon: HomeIcon, iconSolid: HomeIconSolid, label: t('sidebar.home'), href: '/home' },
     { icon: UserIcon, iconSolid: UserIconSolid, label: t('sidebar.profile'), href: '/profile' },
+    { icon: UserGroupIcon, iconSolid: UserGroupIcon, label: t('sidebar.users'), href: '/users' },
     { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: t('sidebar.playlists'), href: '/playlists' },
     { icon: MusicalNoteIcon, iconSolid: MusicalNoteIconSolid, label: t('sidebar.albums_songs'), href: '/albums' },
     { icon: SparklesIcon, iconSolid: SparklesIconSolid, label: 'Subscriptions', href: '/subscriptions' },
