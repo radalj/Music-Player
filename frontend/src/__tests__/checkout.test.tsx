@@ -55,7 +55,7 @@ describe('Checkout page', () => {
   it('sends the mock payment after card details are submitted', async () => {
     const user = userEvent.setup();
     render(
-      <AuthContext.Provider value={{ user: mockUser as any, login: jest.fn(), register: jest.fn(), updateUser: mockUpdateUser, logout: jest.fn(), isAuthenticated: true }}>
+        <AuthContext.Provider value={{ user: mockUser as any, login: jest.fn(), register: jest.fn(), updateUser: mockUpdateUser, logout: jest.fn(), isAuthenticated: true, isReady: true }}>
         <LanguageContext.Provider value={{ language: 'en', setLanguage: jest.fn(), t: mockT }}>
           <PlayerProvider>
             <CheckoutPage />

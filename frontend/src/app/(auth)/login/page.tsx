@@ -7,17 +7,20 @@ import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, login, isReady } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   // اگر کاربر قبلاً وارد شده باشد، به خانه هدایت کن
   useEffect(() => {
-    if (user) {
-      router.push('/home');
+    if (!isReady || !user) return;
+    if (user.role === 'admin' || user.role === 'supporter') {
+      router.replace('/admin/dashboard');
+    } else {
+      router.replace('/home');
     }
-  }, [user, router]);
+  }, [user, router, isReady]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +33,13 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(trimmedEmail, password);
+      const loggedIn = await login(trimmedEmail, password);
       toast.success('Welcome back! 🎵');
-      
-      // هدایت با window.location برای اطمینان بیشتر
-      window.location.href = '/home';
+      if (loggedIn.role === 'admin' || loggedIn.role === 'supporter') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/home');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Invalid credentials. Please try again.');
     } finally {

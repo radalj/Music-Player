@@ -59,7 +59,7 @@ const defaultPrices: SubscriptionPrices = { silver: 9.99, gold: 19.99 };
 
 // ---------- Main Component ----------
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'tickets' | 'accounting' | 'settings'>('tickets');
@@ -166,8 +166,11 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (!isReady || !user) return;
+    if (user.role === 'admin' || user.role === 'supporter') {
+      loadData();
+    }
+  }, [isReady, user]);
 
   // ---------- Handlers ----------
   const handleVerify = async (id: string, action: 'approve' | 'reject') => {
@@ -242,6 +245,14 @@ export default function AdminDashboardPage() {
       toast.error('Failed to update prices');
     }
   };
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-dark flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (

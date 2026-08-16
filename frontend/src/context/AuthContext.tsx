@@ -11,6 +11,7 @@ interface AuthContextType {
   updateUser: (partial: Partial<User>) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isReady: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,29 +51,22 @@ function normalizeUser(raw: any): User {
 
 // ---------- Provider ----------
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('user');
-      if (saved) {
-        try {
-          return normalizeUser(JSON.parse(saved));
-        } catch {
-          return null;
-        }
-      }
-    }
-    return null;
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('user');
-    if (!saved) return;
-    let parsed: any;
-    try {
-      parsed = JSON.parse(saved);
-    } catch {
-      return;
+    let parsed: any = null;
+    if (saved) {
+      try {
+        parsed = JSON.parse(saved);
+        setUser(normalizeUser(parsed));
+      } catch {
+        parsed = null;
+      }
     }
+    setIsReady(true);
+
     if (!parsed?.access) return;
 
     fetch(`${API_URL}/users/profile/`, {
@@ -192,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateUser,
         logout,
         isAuthenticated: !!user,
+        isReady,
       }}
     >
       {children}

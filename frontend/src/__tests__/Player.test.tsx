@@ -21,6 +21,7 @@ jest.mock('@/context/AuthContext', () => ({
     login: jest.fn(),
     logout: jest.fn(),
     isAuthenticated: true,
+    isReady: true,
   }),
 }));
 

@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -31,20 +31,22 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!isReady) return;
     if (!user) {
-      router.push('/login');
-    } else {
-      setIsGoldUser(user.subscriptionType === 'gold');
-      setIsPending(user.role === 'pending_artist');
+      router.replace('/login');
+      return;
+    }
+    setIsGoldUser(user.subscriptionType === 'gold');
+    setIsPending(user.role === 'pending_artist');
 
-      const fetchData = async () => {
-        try {
-          const [plRes, albRes, trkRes, recRes] = await Promise.all([
-            api.get('/playlists/playlists/').catch(() => null),
-            api.get('/music/albums/').catch(() => null),
-            api.get('/music/tracks/').catch(() => null),
-            api.get('/music/tracks/recommendations/').catch(() => null),
-          ]);
+    const fetchData = async () => {
+      try {
+        const [plRes, albRes, trkRes, recRes] = await Promise.all([
+          api.get('/playlists/playlists/').catch(() => null),
+          api.get('/music/albums/').catch(() => null),
+          api.get('/music/tracks/').catch(() => null),
+          api.get('/music/tracks/recommendations/').catch(() => null),
+        ]);
 
           if (plRes?.data) {
             const rawPl = Array.isArray(plRes.data) ? plRes.data : plRes.data.results || [];
@@ -115,14 +117,13 @@ export default function HomePage() {
       };
 
       fetchData();
-    }
-  }, [user, router]);
+  }, [user, router, isReady]);
 
   const handlePlayTrack = (trackId: string) => {
     router.push(`/player/${trackId}`);
   };
 
-  if (!isClient) return null;
+  if (!isClient || !isReady) return null;
   if (!user) return null;
 
   const handleLogout = () => {
