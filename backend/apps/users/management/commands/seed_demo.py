@@ -1,7 +1,9 @@
-from datetime import date, timedelta
+from pathlib import Path
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from datetime import date, timedelta
 
 from apps.users.models import User
 from apps.subscriptions.models import SubscriptionPlan, UserSubscription
@@ -11,13 +13,18 @@ from apps.notifications.models import Notification
 from apps.tickets.models import SupportTicket, TicketReply
 
 
-TINY_MP3 = (
-    b'\xff\xfb\x90\x00' + b'\x00' * 256
-)
+PLAYABLE_WAV = Path(settings.BASE_DIR) / 'media' / 'tracks' / '_playable.wav'
 
 
-def dummy_audio(name='track.mp3'):
-    return ContentFile(TINY_MP3, name=name)
+def dummy_audio(name='track.wav'):
+    if PLAYABLE_WAV.exists():
+        return ContentFile(PLAYABLE_WAV.read_bytes(), name=name)
+    # 1s silent wav header fallback
+    return ContentFile(
+        b'RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00'
+        b'D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00',
+        name=name,
+    )
 
 
 class Command(BaseCommand):
@@ -113,7 +120,7 @@ class Command(BaseCommand):
             },
         )
         if not track.audio_file:
-            track.audio_file.save('midnight-dreams.mp3', dummy_audio('midnight-dreams.mp3'), save=True)
+            track.audio_file.save('midnight-dreams.wav', dummy_audio('midnight-dreams.wav'), save=True)
 
         single, _ = Track.objects.get_or_create(
             title='Ocean Waves',
@@ -129,7 +136,7 @@ class Command(BaseCommand):
             },
         )
         if not single.audio_file:
-            single.audio_file.save('ocean-waves.mp3', dummy_audio('ocean-waves.mp3'), save=True)
+            single.audio_file.save('ocean-waves.wav', dummy_audio('ocean-waves.wav'), save=True)
 
         album, _ = Album.objects.get_or_create(
             title='Dreamscape',
@@ -161,7 +168,7 @@ class Command(BaseCommand):
             },
         )
         if not pop_hit.audio_file:
-            pop_hit.audio_file.save('neon-heart.mp3', dummy_audio('neon-heart.mp3'), save=True)
+            pop_hit.audio_file.save('neon-heart.wav', dummy_audio('neon-heart.wav'), save=True)
 
         extra_indie, _ = Track.objects.get_or_create(
             title='Harbor Lights',
@@ -177,7 +184,7 @@ class Command(BaseCommand):
             },
         )
         if not extra_indie.audio_file:
-            extra_indie.audio_file.save('harbor-lights.mp3', dummy_audio('harbor-lights.mp3'), save=True)
+            extra_indie.audio_file.save('harbor-lights.wav', dummy_audio('harbor-lights.wav'), save=True)
 
         PlayHistory.objects.get_or_create(user=gold, track=track)
         PlayHistory.objects.get_or_create(user=gold, track=single)

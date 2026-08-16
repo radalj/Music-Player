@@ -2,7 +2,7 @@ from rest_framework import generics, permissions, filters, status
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Sum
 from .models import Track, Album, User, PlayHistory
 from .serializers import TrackSerializer, AlbumSerializer
@@ -12,7 +12,7 @@ from apps.notifications.models import Notification
 
 
 class TrackListCreateView(generics.ListCreateAPIView):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     queryset = Track.objects.all()
     serializer_class = TrackSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsArtistOrReadOnly]
@@ -79,7 +79,7 @@ class TrackPlayView(APIView):
 
 
 class AlbumListCreateView(generics.ListCreateAPIView):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     queryset = Album.objects.all()
     serializer_class = AlbumSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsArtistOrReadOnly]

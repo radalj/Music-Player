@@ -33,8 +33,60 @@ class MusicTests(TestCase):
             genre='Pop'
         )
 
+    def test_artist_can_upload_track_with_lyrics(self):
+        self.client.force_authenticate(user=self.artist)
+        audio = make_audio('release.mp3')
+        response = self.client.post(
+            '/api/music/tracks/',
+            {
+                'title': 'Lyric Song',
+                'audio_file': audio,
+                'lyrics': 'Hello from the other side',
+                'duration': 120,
+                'genre': 'Pop',
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['lyrics'], 'Hello from the other side')
+        self.assertEqual(response.data['title'], 'Lyric Song')
+        self.assertEqual(response.data['artist']['id'], self.artist.id)
+
+    def test_artist_can_upload_album_with_track(self):
+        self.client.force_authenticate(user=self.artist)
+        audio = make_audio('album-track.mp3')
+        track_res = self.client.post(
+            '/api/music/tracks/',
+            {
+                'title': 'Album Cut',
+                'audio_file': audio,
+                'lyrics': 'Verse one',
+                'duration': 200,
+                'is_single': False,
+            },
+            format='multipart',
+        )
+        self.assertEqual(track_res.status_code, status.HTTP_201_CREATED)
+        album_res = self.client.post('/api/music/albums/', {
+            'title': 'Debut Album',
+            'release_date': '2026-01-01',
+            'genre': 'Pop',
+            'track_ids': [track_res.data['id']],
+        }, format='json')
+        self.assertEqual(album_res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(album_res.data['title'], 'Debut Album')
+        self.assertEqual(len(album_res.data['tracks']), 1)
+        self.assertEqual(album_res.data['tracks'][0]['title'], 'Album Cut')
+
     def test_list_tracks_and_search(self):
         response = self.client.get('/api/music/tracks/?search=Test')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_list_tracks_with_json_content_type(self):
+        response = self.client.get(
+            '/api/music/tracks/',
+            HTTP_CONTENT_TYPE='application/json',
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_track_playback_and_daily_stream_limit(self):
