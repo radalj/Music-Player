@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { api } from '@/services/api';
+import { SubscriptionType } from '@/types';
 import { CheckIcon, SparklesIcon, CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -19,7 +20,7 @@ interface Plan {
 }
 
 export default function SubscriptionsPage() {
-  const { user, login } = useAuth();
+  const { user, updateUser } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -102,12 +103,10 @@ export default function SubscriptionsPage() {
       if (res?.data) {
         toast.success(`Successfully upgraded to ${selectedPlan.toUpperCase()} plan for ${durationMonths} month(s)!`);
 
-        const updatedUser = {
-          ...user,
-          subscriptionType: selectedPlan,
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        login(updatedUser);
+        updateUser({
+          subscriptionType: selectedPlan as SubscriptionType,
+          subscription_type: selectedPlan as SubscriptionType,
+        });
 
         setTimeout(() => {
           router.push('/profile');

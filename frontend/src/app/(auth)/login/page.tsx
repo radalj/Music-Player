@@ -21,10 +21,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      toast.error('Email and password are required');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(trimmedEmail, password);
       toast.success('Welcome back! 🎵');
       
       // هدایت با window.location برای اطمینان بیشتر

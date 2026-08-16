@@ -254,22 +254,22 @@ export default function AlbumsPage() {
               <h2 className="text-xl font-bold text-white mb-4">{t('albums.albums_section')}</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredAlbums.map((album) => (
-                  <Link
+                  <div
                     key={album.id}
-                    href={`/album/${album.id}`}
-                    className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#242424] transition border border-gray-800 hover:border-gray-600 block"
+                    className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#242424] transition border border-gray-800 hover:border-gray-600"
                   >
-                    <div className="w-full aspect-square bg-gray-700 rounded-md overflow-hidden mb-2">
-                      <img
-                        src={album.coverImage}
-                        alt={album.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <p className="text-white font-medium truncate text-sm">{album.title}</p>
+                    <Link href={`/album/${album.id}`} className="block">
+                      <div className="w-full aspect-square bg-gray-700 rounded-md overflow-hidden mb-2">
+                        <img
+                          src={album.coverImage}
+                          alt={album.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <p className="text-white font-medium truncate text-sm">{album.title}</p>
+                    </Link>
                     <Link
                       href={`/artist/${album.artist.id}`}
-                      onClick={(e) => e.stopPropagation()}
                       className="text-text-secondary text-xs hover:text-primary transition truncate block"
                       data-testid="album-artist-link"
                     >
@@ -278,7 +278,7 @@ export default function AlbumsPage() {
                     <p className="text-text-secondary text-xs mt-1">
                       {album.tracks.length} {t('albums.tracks_count')} • {new Date(album.releaseDate).getFullYear()}
                     </p>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </section>

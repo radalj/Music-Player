@@ -38,7 +38,7 @@ const renderWithProviders = (ui: React.ReactElement, language = 'en') => {
   };
 
   return render(
-    <AuthContext.Provider value={{ user: mockUser, login: jest.fn(), logout: mockLogout, isAuthenticated: true }}>
+    <AuthContext.Provider value={{ user: mockUser as any, login: jest.fn(), register: jest.fn(), updateUser: jest.fn(), logout: mockLogout, isAuthenticated: true }}>
       <LanguageContext.Provider value={{ language: language as any, setLanguage: mockSetLanguage, t: mockT }}>
         {ui}
       </LanguageContext.Provider>

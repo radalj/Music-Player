@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<User>;
   register: (userData: any) => Promise<User>;
+  updateUser: (partial: Partial<User>) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -67,11 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // در AuthContext.tsx، بخش login:
 
   const login = async (email: string, password: string) => {
+    const trimmedEmail = typeof email === 'string' ? email.trim() : '';
+    const trimmedPassword = typeof password === 'string' ? password : '';
+
+    if (!trimmedEmail || !trimmedPassword) {
+      throw new Error('Email and password are required');
+    }
+
     try {
       const response = await fetch(`${API_URL}/users/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: trimmedEmail, password: trimmedPassword }),
       });
 
       if (!response.ok) {
@@ -131,6 +139,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateUser = (partial: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = normalizeUser({ ...prev, ...partial });
+      localStorage.setItem('user', JSON.stringify(next));
+      return next;
+    });
+  };
+
   // ---------- خروج از حساب ----------
   const logout = () => {
     setUser(null);
@@ -143,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         login,
         register,
+        updateUser,
         logout,
         isAuthenticated: !!user,
       }}
