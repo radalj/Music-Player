@@ -8,6 +8,8 @@ import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { getTrackById } from '@/utils/mockData';
 import { api } from '@/services/api';
+import { usePlayer } from '@/context/PlayerContext';
+import { mediaUrl } from '@/utils/media';
 import Link from 'next/link';
 import { PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
@@ -16,6 +18,7 @@ export default function PlayerPage() {
   const params = useParams();
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { setCurrentTrack } = usePlayer();
   const trackId = params?.id as string;
 
   const [isClient, setIsClient] = useState(false);
@@ -42,11 +45,11 @@ export default function PlayerPage() {
             id: tData.id.toString(),
             title: tData.title,
             artist: { id: tData.artist?.id?.toString() || '1', name: tData.artist?.display_name || 'Artist' },
-            coverImage: tData.cover_image || '/images/default-track.jpg',
+            coverImage: mediaUrl(tData.cover_image) || tData.cover_image || '/images/default-track.jpg',
             duration: tData.duration || 180,
             listeners: tData.listeners || 0,
             streams: tData.streams || 0,
-            audioUrl: tData.audio_file || '/audio/track1.mp3',
+            audioUrl: mediaUrl(tData.audio_file) || tData.audio_file || '/audio/track1.mp3',
             lyrics: tData.lyrics || '',
             album: tData.album ? { id: tData.album.id.toString(), title: tData.album.title } : undefined,
             releaseDate: tData.release_date || new Date().toISOString(),
@@ -59,6 +62,20 @@ export default function PlayerPage() {
       }
 
       setTrack(fetchedTrack);
+      if (fetchedTrack) {
+        setCurrentTrack({
+          id: fetchedTrack.id,
+          title: fetchedTrack.title,
+          artist: fetchedTrack.artist,
+          coverImage: fetchedTrack.coverImage,
+          duration: fetchedTrack.duration,
+          album: fetchedTrack.album,
+          listeners: fetchedTrack.listeners || 0,
+          streams: fetchedTrack.streams || 0,
+          audioUrl: fetchedTrack.audioUrl,
+          lyrics: fetchedTrack.lyrics || '',
+        });
+      }
 
       // Register play stream with Backend API
       try {
@@ -280,12 +297,19 @@ export default function PlayerPage() {
                 </p>
               </div>
             </div>
-            {track.lyrics && (
+            {track.lyrics ? (
               <div className="mt-4">
-                <p className="text-text-secondary text-sm mb-2">Lyrics</p>
-                <pre className="text-text-secondary text-sm whitespace-pre-wrap bg-[#2a2a2a] p-4 rounded-lg">
+                <p className="text-text-secondary text-sm mb-2">{t('player.lyrics') || 'Lyrics'}</p>
+                <pre className="text-text-secondary text-sm whitespace-pre-wrap bg-[#2a2a2a] p-4 rounded-lg" data-testid="track-lyrics">
                   {track.lyrics}
                 </pre>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <p className="text-text-secondary text-sm mb-2">{t('player.lyrics') || 'Lyrics'}</p>
+                <p className="text-text-secondary text-sm" data-testid="track-lyrics">
+                  {t('player.no_lyrics') || 'No lyrics available for this track.'}
+                </p>
               </div>
             )}
           </div>

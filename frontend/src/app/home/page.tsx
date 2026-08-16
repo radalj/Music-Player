@@ -7,6 +7,7 @@ import Player from '@/components/common/Player';
 import { RecommendedForYou } from '@/components/common/RecommendedForYou';
 import { mockPlaylists, mockAlbums, mockTracks } from '@/utils/mockData';
 import { api } from '@/services/api';
+import { mediaUrl } from '@/utils/media';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -165,7 +166,7 @@ export default function HomePage() {
               <div className="w-14 h-14 rounded-full overflow-hidden bg-gradient-to-br from-primary to-green-700 flex items-center justify-center text-2xl font-bold text-black flex-shrink-0">
                 {user?.profileImage ? (
                   <Image
-                    src={user.profileImage}
+                    src={mediaUrl(user.profileImage) || user.profileImage}
                     alt={user.displayName || 'User'}
                     width={56}
                     height={56}

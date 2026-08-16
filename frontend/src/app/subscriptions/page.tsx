@@ -32,7 +32,6 @@ export default function SubscriptionsPage() {
   ]);
   const [selectedPlan, setSelectedPlan] = useState<string>('silver');
   const [durationMonths, setDurationMonths] = useState<number>(1);
-  const [loading, setLoading] = useState<boolean>(false);
   const [currentPlanName, setCurrentPlanName] = useState<string>('free');
 
   useEffect(() => {
@@ -44,6 +43,23 @@ export default function SubscriptionsPage() {
       setCurrentPlanName(user.subscriptionType || 'free');
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    api
+      .get('/subscriptions/my-subscription/')
+      .then((res) => {
+        const name = res.data?.plan?.name;
+        if (name) {
+          setCurrentPlanName(name);
+          updateUser({
+            subscriptionType: name as SubscriptionType,
+            subscription_type: name as SubscriptionType,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [user?.id]);
 
   // Load plan prices from API
   useEffect(() => {
@@ -77,7 +93,7 @@ export default function SubscriptionsPage() {
     return (monthlyPrice * durationMonths).toFixed(2);
   };
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = () => {
     if (!user) {
       toast.error('Please login to upgrade subscription');
       router.push('/login');
@@ -89,35 +105,7 @@ export default function SubscriptionsPage() {
       return;
     }
 
-    setLoading(true);
-    try {
-      const planObj = plans.find((p) => p.name === selectedPlan);
-      const planId = planObj ? planObj.id : (selectedPlan === 'gold' ? 3 : 2);
-
-      const res = await api.post('/payments/mock/', {
-        plan_id: planId,
-        duration_months: durationMonths,
-        payment_method: 'mock_gateway',
-      });
-
-      if (res?.data) {
-        toast.success(`Successfully upgraded to ${selectedPlan.toUpperCase()} plan for ${durationMonths} month(s)!`);
-
-        updateUser({
-          subscriptionType: selectedPlan as SubscriptionType,
-          subscription_type: selectedPlan as SubscriptionType,
-        });
-
-        setTimeout(() => {
-          router.push('/profile');
-        }, 1200);
-      }
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || error.response?.data?.error || 'Payment failed';
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
+    router.push(`/checkout?plan=${encodeURIComponent(selectedPlan)}&months=${durationMonths}`);
   };
 
   if (!isMounted) {
@@ -264,11 +252,11 @@ export default function SubscriptionsPage() {
             </div>
             <button
               onClick={handleUpgrade}
-              disabled={loading || selectedPlan === 'free'}
+              disabled={selectedPlan === 'free'}
               className="px-8 py-3 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition flex items-center gap-2 disabled:opacity-50"
             >
               <CreditCardIcon className="w-5 h-5" />
-              {loading ? 'Processing Payment...' : 'Proceed to Payment'}
+              Proceed to Payment
             </button>
           </div>
         </div>

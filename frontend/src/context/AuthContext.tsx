@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
@@ -63,6 +63,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return null;
   });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user');
+    if (!saved) return;
+    let parsed: any;
+    try {
+      parsed = JSON.parse(saved);
+    } catch {
+      return;
+    }
+    if (!parsed?.access) return;
+
+    fetch(`${API_URL}/users/profile/`, {
+      headers: { Authorization: `Bearer ${parsed.access}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const normalized = normalizeUser({
+          ...parsed,
+          ...data,
+          access: parsed.access,
+          refresh: parsed.refresh,
+        });
+        localStorage.setItem('user', JSON.stringify(normalized));
+        setUser(normalized);
+      })
+      .catch(() => {});
+  }, []);
 
   // ---------- ورود از طریق بک‌اند ----------
   // در AuthContext.tsx، بخش login:

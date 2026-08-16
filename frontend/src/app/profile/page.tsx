@@ -8,6 +8,7 @@ import Image from 'next/image';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
 import { CheckBadgeIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
+import { mediaUrl } from '@/utils/media';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -99,7 +100,7 @@ function ArtistProfileContent({
             <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-primary to-green-700 flex items-center justify-center text-4xl font-bold text-black flex-shrink-0">
               {user.profile_image ? (
                 <Image
-                  src={user.profile_image}
+                  src={mediaUrl(user.profile_image) || user.profile_image}
                   alt={user.display_name}
                   width={112}
                   height={112}
@@ -237,7 +238,7 @@ function ArtistProfileContent({
 
 // ---------- Main Profile Page ----------
 export default function ProfilePage() {
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, logout, updateUser } = useAuth();
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -256,6 +257,8 @@ export default function ProfilePage() {
     birthDate: '',
     gender: '',
   });
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
 
   // ---------- تابع دریافت توکن ----------
   const getToken = () => {
@@ -390,6 +393,25 @@ export default function ProfilePage() {
     }
   };
 
+  const handlePhotoSelect = (file: File | null) => {
+    const planName = (
+      subscription?.plan?.name ||
+      localUser?.subscription_type ||
+      authUser?.subscriptionType ||
+      'free'
+    ).toLowerCase();
+    if (planName === 'free') {
+      toast.error(t('profile.photo_not_allowed'));
+      return;
+    }
+    setProfileFile(file);
+    if (file) {
+      setPhotoPreview(URL.createObjectURL(file));
+    } else {
+      setPhotoPreview('');
+    }
+  };
+
   // ---------- ویرایش پروفایل ----------
   const handleSaveEdit = async () => {
     if (!localUser) {
@@ -400,27 +422,33 @@ export default function ProfilePage() {
       const token = getToken();
       if (!token) throw new Error('No token');
 
-      const payload = {
-        display_name: editData.displayName,
-        email: editData.email,
-        birth_date: editData.birthDate,
-        gender: editData.gender,
-      };
+      const formData = new FormData();
+      formData.append('display_name', editData.displayName);
+      formData.append('email', editData.email);
+      if (editData.birthDate) formData.append('birth_date', editData.birthDate);
+      if (editData.gender) formData.append('gender', editData.gender);
+      if (profileFile) formData.append('profile_image', profileFile);
 
       const res = await fetch(`${API_URL}/users/profile/`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || 'Update failed');
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || err.error || 'Update failed');
       }
       const updated = await res.json();
       setLocalUser(updated);
+      updateUser({
+        ...updated,
+        profileImage: updated.profile_image,
+        profile_image: updated.profile_image,
+      });
+      setProfileFile(null);
+      setPhotoPreview('');
       toast.success(t('profile.update_success'));
       setIsEditing(false);
     } catch (error: any) {
@@ -489,8 +517,16 @@ export default function ProfilePage() {
     return map[type] || map.free;
   };
 
-  const subInfo = localUser.role === 'listener' ? getSubscriptionLabel(subscription?.plan?.name || 'free') : null;
+  const planName = (
+    subscription?.plan?.name ||
+    localUser.subscription_type ||
+    authUser?.subscriptionType ||
+    'free'
+  ).toLowerCase();
+  const subInfo = localUser.role === 'listener' ? getSubscriptionLabel(planName) : null;
   const isOwnProfile = String(authUser?.id) === String(localUser.id);
+  const canUploadPhoto = planName === 'silver' || planName === 'gold';
+  const avatarSrc = photoPreview || mediaUrl(localUser.profile_image);
 
   return (
     <div className="flex h-screen bg-dark">
@@ -501,9 +537,9 @@ export default function ProfilePage() {
             <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
               <div className="relative">
                 <div className="w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-primary to-green-700 flex items-center justify-center text-4xl font-bold text-black flex-shrink-0">
-                  {localUser.profile_image ? (
+                  {avatarSrc ? (
                     <Image
-                      src={localUser.profile_image}
+                      src={avatarSrc}
                       alt={localUser.display_name}
                       width={112}
                       height={112}
@@ -584,6 +620,20 @@ export default function ProfilePage() {
             <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6 mb-6">
               <h2 className="text-xl font-bold text-white mb-4">✏️ {t('profile.edit_information')}</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.profile_photo')}</label>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    data-testid="profile-photo-input"
+                    disabled={!canUploadPhoto}
+                    onChange={(e) => handlePhotoSelect(e.target.files?.[0] || null)}
+                    className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-1 file:text-black disabled:opacity-50"
+                  />
+                  {!canUploadPhoto && (
+                    <p className="text-yellow-400 text-xs mt-1">{t('profile.photo_not_allowed')}</p>
+                  )}
+                </div>
                 <div>
                   <label className="block text-text-secondary text-sm font-medium mb-1">{t('profile.display_name')}</label>
                   <input
@@ -650,7 +700,7 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </div>
-              {subscription?.plan?.name === 'free' && (
+              {planName === 'free' && (
                 <div className="mt-4 p-3 bg-yellow-600/10 border border-yellow-600/30 rounded-lg text-sm text-yellow-400">
                   ⚠️ {t('profile.free_limitation')}
                 </div>
@@ -676,7 +726,7 @@ export default function ProfilePage() {
               {localUser.role === 'listener' && (
                 <div className="bg-[#2a2a2a] p-4 rounded-lg text-center">
                   <p className="text-2xl font-bold text-primary">
-                    {subscription?.plan?.name === 'gold' ? '∞' : '🎵'}
+                    {subscription?.plan?.name === 'gold' || planName === 'gold' ? '∞' : '🎵'}
                   </p>
                   <p className="text-text-secondary text-sm">{t('profile.subscription')}</p>
                 </div>

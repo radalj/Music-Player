@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Player from '@/components/common/Player';
+import { PlayerProvider } from '@/context/PlayerContext';
 
 const mockUser = {
   id: 'user1',
@@ -21,6 +22,10 @@ jest.mock('@/context/AuthContext', () => ({
     logout: jest.fn(),
     isAuthenticated: true,
   }),
+}));
+
+jest.mock('@/services/api', () => ({
+  api: { get: jest.fn().mockRejectedValue(new Error('offline')) },
 }));
 
 jest.mock('@/context/LanguageContext', () => ({
@@ -59,7 +64,11 @@ describe('Player', () => {
   });
 
   it('renders the initial track and loads its audio source', async () => {
-    render(<Player />);
+    render(
+      <PlayerProvider>
+        <Player />
+      </PlayerProvider>
+    );
 
     expect(screen.getByText('Midnight Dreams')).toBeInTheDocument();
     expect(screen.getByText('The Midnight Waves')).toBeInTheDocument();
@@ -74,7 +83,11 @@ describe('Player', () => {
 
   it('starts and pauses playback from the shared audio element', async () => {
     const user = userEvent.setup();
-    render(<Player />);
+    render(
+      <PlayerProvider>
+        <Player />
+      </PlayerProvider>
+    );
 
     await user.click(screen.getByTitle('Play'));
 
@@ -89,7 +102,11 @@ describe('Player', () => {
 
   it('advances to the next track and updates the shared audio source', async () => {
     const user = userEvent.setup();
-    render(<Player />);
+    render(
+      <PlayerProvider>
+        <Player />
+      </PlayerProvider>
+    );
 
     await user.click(screen.getByTitle('Next'));
 
@@ -100,5 +117,18 @@ describe('Player', () => {
     const audio = document.querySelector('audio');
     expect(audio?.getAttribute('src') || audio?.src).toContain('/audio/track4.mp3');
     expect(playMock).toHaveBeenCalled();
+  });
+
+  it('shows lyrics when the lyrics button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <PlayerProvider>
+        <Player />
+      </PlayerProvider>
+    );
+
+    await user.click(screen.getByTestId('player-lyrics'));
+    expect(screen.getByTestId('player-lyrics-panel')).toBeInTheDocument();
+    expect(screen.getByText(/In the midnight hour/i)).toBeInTheDocument();
   });
 });

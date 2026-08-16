@@ -23,6 +23,9 @@ api.interceptors.request.use(
         } catch (e) {}
       }
     }
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => Promise.reject(error)

@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { usePlayer, PlayerTrack } from '@/context/PlayerContext';
+import { mediaUrl } from '@/utils/media';
+import { api } from '@/services/api';
 import {
   PlayIcon,
   PauseIcon,
@@ -18,30 +21,16 @@ import { mockTracks } from '@/utils/mockData';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
-// ---------- Types ----------
-interface Track {
-  id: string;
-  title: string;
-  artist: { id: string; name: string };
-  coverImage: string;
-  duration: number;
-  album?: { id: string; title: string };
-  listeners: number;
-  streams: number;
-  audioUrl: string;
-  lyrics?: string;
-}
-
 type RepeatMode = 'none' | 'all' | 'one';
 
 // ---------- Main Component ----------
 export default function Player() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { currentTrack, setCurrentTrack } = usePlayer();
 
   // ---------- State ----------
-  const [queue] = useState<Track[]>(() => [...mockTracks]);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(() => mockTracks[0] ?? null);
+  const [queue] = useState<PlayerTrack[]>(() => [...mockTracks]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -152,7 +141,7 @@ export default function Player() {
     setProgress(0);
     
     // ✅ Set the source and load
-    audio.src = currentTrack.audioUrl || '/audio/mock.mp3';
+    audio.src = mediaUrl(currentTrack.audioUrl) || currentTrack.audioUrl || '/audio/mock.mp3';
     audio.load();
 
     // ✅ Progress tracking
@@ -178,6 +167,25 @@ export default function Player() {
       }
     };
   }, [currentTrack, isPlaying]);
+
+  useEffect(() => {
+    if (!currentTrack?.id || currentTrack.lyrics) return;
+    const trackId = currentTrack.id;
+    const snapshot = currentTrack;
+    let cancelled = false;
+    api
+      .get(`/music/tracks/${trackId}/`)
+      .then((res) => {
+        const lyrics = res.data?.lyrics;
+        if (!cancelled && lyrics) {
+          setCurrentTrack({ ...snapshot, lyrics });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [currentTrack?.id]);
 
   // ---------- Handle play/pause ----------
   useEffect(() => {
@@ -331,7 +339,7 @@ export default function Player() {
           </div>
           <div className="flex-1 flex flex-col items-center justify-center px-6 pb-32 overflow-y-auto">
             <img
-              src={currentTrack.coverImage}
+              src={mediaUrl(currentTrack.coverImage) || currentTrack.coverImage}
               alt={currentTrack.title}
               className="w-64 h-64 md:w-80 md:h-80 rounded-lg object-cover mb-6"
             />
@@ -344,15 +352,13 @@ export default function Player() {
                 {currentTrack.album.title}
               </Link>
             )}
-            {currentTrack.lyrics && (
-              <pre className="mt-6 max-w-xl w-full text-text-secondary text-sm whitespace-pre-wrap bg-[#1a1a1a] p-4 rounded-lg">
-                {currentTrack.lyrics}
-              </pre>
-            )}
+            <pre className="mt-6 max-w-xl w-full text-text-secondary text-sm whitespace-pre-wrap bg-[#1a1a1a] p-4 rounded-lg">
+              {currentTrack.lyrics || t('player.no_lyrics') || 'No lyrics available for this track.'}
+            </pre>
           </div>
         </div>
       )}
-    <div className="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-gray-800 z-50" data-testid="music-player">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-gray-800 z-50 overflow-visible" data-testid="music-player">
       {/* Main Player */}
       <div className="flex items-center justify-between max-w-7xl mx-auto p-4 gap-4">
         {/* Track Info */}
@@ -364,7 +370,7 @@ export default function Player() {
             data-testid="player-cover"
           >
             <img
-              src={currentTrack.coverImage}
+              src={mediaUrl(currentTrack.coverImage) || currentTrack.coverImage}
               alt={currentTrack.title}
               className="w-full h-full object-cover"
             />
@@ -585,8 +591,8 @@ export default function Player() {
       <audio ref={audioRef} className="hidden" />
 
       {/* Lyrics Popup (Optional) */}
-      {showLyrics && currentTrack.lyrics && (
-        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-96 bg-[#1a1a1a] border border-gray-800 rounded-lg shadow-xl p-4 max-h-80 overflow-y-auto">
+      {showLyrics && (
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 w-96 bg-[#1a1a1a] border border-gray-800 rounded-lg shadow-xl p-4 max-h-80 overflow-y-auto" data-testid="player-lyrics-panel">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-white font-medium">{t('player.lyrics') || 'Lyrics'}</h4>
             <button
@@ -597,7 +603,7 @@ export default function Player() {
             </button>
           </div>
           <pre className="text-text-secondary text-sm whitespace-pre-wrap">
-            {currentTrack.lyrics}
+            {currentTrack.lyrics || t('player.no_lyrics') || 'No lyrics available for this track.'}
           </pre>
         </div>
       )}

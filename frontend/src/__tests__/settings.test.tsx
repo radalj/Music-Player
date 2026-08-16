@@ -3,8 +3,16 @@ import userEvent from '@testing-library/user-event';
 import SettingsPage from '@/app/settings/page';
 import { AuthContext } from '@/context/AuthContext';
 import { LanguageContext } from '@/context/LanguageContext';
+import { PlayerProvider } from '@/context/PlayerContext';
 import en from '@/locales/en.json';
 import fa from '@/locales/fa.json';
+
+jest.mock('@/services/api', () => ({
+  api: {
+    get: jest.fn().mockResolvedValue({ data: {} }),
+    delete: jest.fn().mockResolvedValue({}),
+  },
+}));
 
 // Mock contexts
 const mockUser = {
@@ -40,7 +48,9 @@ const renderWithProviders = (ui: React.ReactElement, language = 'en') => {
   return render(
     <AuthContext.Provider value={{ user: mockUser as any, login: jest.fn(), register: jest.fn(), updateUser: jest.fn(), logout: mockLogout, isAuthenticated: true }}>
       <LanguageContext.Provider value={{ language: language as any, setLanguage: mockSetLanguage, t: mockT }}>
-        {ui}
+        <PlayerProvider>
+          {ui}
+        </PlayerProvider>
       </LanguageContext.Provider>
     </AuthContext.Provider>
   );

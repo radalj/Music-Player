@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { PlayerProvider } from "@/context/PlayerContext";
 import { Toaster } from "react-hot-toast";
 import HtmlLang from "@/components/common/HtmlLang";
 
@@ -23,9 +24,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <LanguageProvider>
           <AuthProvider>
+            <PlayerProvider>
             <HtmlLang /> {/* تنظیم lang و dir */}
             {children}
             <Toaster position="top-right" />
+            </PlayerProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>
