@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
+import { RecommendedForYou } from '@/components/common/RecommendedForYou';
 import { mockPlaylists, mockAlbums, mockTracks } from '@/utils/mockData';
 import { api } from '@/services/api';
 import Image from 'next/image';
@@ -20,6 +21,7 @@ export default function HomePage() {
   const [recentPlaylists, setRecentPlaylists] = useState<any[]>(mockPlaylists.slice(0, 3));
   const [latestAlbums, setLatestAlbums] = useState<any[]>(mockAlbums.slice(0, 4));
   const [popularTracks, setPopularTracks] = useState<any[]>(mockTracks.slice(0, 5));
+  const [recommendedTracks, setRecommendedTracks] = useState<any[]>([]);
   const [isGoldUser, setIsGoldUser] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
@@ -36,10 +38,11 @@ export default function HomePage() {
 
       const fetchData = async () => {
         try {
-          const [plRes, albRes, trkRes] = await Promise.all([
+          const [plRes, albRes, trkRes, recRes] = await Promise.all([
             api.get('/playlists/playlists/').catch(() => null),
             api.get('/music/albums/').catch(() => null),
             api.get('/music/tracks/').catch(() => null),
+            api.get('/music/tracks/recommendations/').catch(() => null),
           ]);
 
           if (plRes?.data) {
@@ -84,6 +87,23 @@ export default function HomePage() {
                   album: t.album ? { title: t.album.title } : undefined,
                   duration: t.duration || 180,
                   listeners: t.listeners || 0,
+                }))
+              );
+            }
+          }
+
+          if (recRes?.data) {
+            const rawRec = Array.isArray(recRes.data) ? recRes.data : recRes.data.results || [];
+            if (rawRec.length > 0) {
+              setRecommendedTracks(
+                rawRec.slice(0, 8).map((item: any) => ({
+                  id: item.id.toString(),
+                  title: item.title,
+                  coverImage: item.cover_image || '/images/default-track.jpg',
+                  artist: { name: item.artist?.display_name || 'Artist' },
+                  duration: item.duration || 180,
+                  reasonCode: item.reason_code,
+                  reasonGenre: item.reason_genre,
                 }))
               );
             }
@@ -252,6 +272,14 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+
+              {/* Recommended for you */}
+              <RecommendedForYou
+                tracks={recommendedTracks}
+                onPlay={handlePlayTrack}
+                formatDuration={formatDuration}
+                t={t}
+              />
 
               {/* Recent Playlists */}
               <section className="mb-10">

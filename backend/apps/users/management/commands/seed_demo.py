@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from apps.users.models import User
 from apps.subscriptions.models import SubscriptionPlan, UserSubscription
-from apps.music.models import Track, Album
+from apps.music.models import Track, Album, PlayHistory
 from apps.playlists.models import Playlist
 from apps.notifications.models import Notification
 from apps.tickets.models import SupportTicket, TicketReply
@@ -140,6 +140,47 @@ class Command(BaseCommand):
             },
         )
         album.tracks.add(track)
+
+        pop_artist = upsert_user(
+            'pop.artist@music.app', 'lunapop', 'Luna Pop', 'artist', 'free',
+            verified=True, awaiting_approval=False,
+            bio='Chart-ready pop hooks and neon nights.',
+            portfolio='https://soundcloud.com/luna-pop',
+        )
+        pop_hit, _ = Track.objects.get_or_create(
+            title='Neon Heart',
+            artist=pop_artist,
+            defaults={
+                'duration': 198,
+                'lyrics': 'Neon heart in the city lights...',
+                'genre': 'Pop',
+                'release_year': 2025,
+                'listeners': 88000,
+                'streams': 2100000,
+                'is_single': True,
+            },
+        )
+        if not pop_hit.audio_file:
+            pop_hit.audio_file.save('neon-heart.mp3', dummy_audio('neon-heart.mp3'), save=True)
+
+        extra_indie, _ = Track.objects.get_or_create(
+            title='Harbor Lights',
+            artist=artist,
+            defaults={
+                'duration': 242,
+                'lyrics': 'Harbor lights over the water...',
+                'genre': 'Indie Rock',
+                'release_year': 2025,
+                'listeners': 9400,
+                'streams': 120000,
+                'is_single': True,
+            },
+        )
+        if not extra_indie.audio_file:
+            extra_indie.audio_file.save('harbor-lights.mp3', dummy_audio('harbor-lights.mp3'), save=True)
+
+        PlayHistory.objects.get_or_create(user=gold, track=track)
+        PlayHistory.objects.get_or_create(user=gold, track=single)
 
         playlist, _ = Playlist.objects.get_or_create(
             name='Chill Vibes',

@@ -35,6 +35,11 @@ export const musicService = {
     return response.data;
   },
 
+  getRecommendations: async (limit = 8) => {
+    const response = await api.get('/music/tracks/recommendations/', { params: { limit } });
+    return response.data;
+  },
+
   createAlbum: async (data: any) => {
     const response = await api.post('/music/albums/', data);
     return response.data;

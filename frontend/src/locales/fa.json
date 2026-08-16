@@ -171,7 +171,12 @@
     "view_all": "مشاهده همه",
     "tracks_count": "آهنگ",
     "latest_albums": "آلبوم‌های جدید",
-    "single": "تک‌آهنگ"
+    "single": "تک‌آهنگ",
+    "recommended": "پیشنهادی برای شما",
+    "recommended_reason_genre": "چون به {genre} گوش می‌دهید",
+    "recommended_reason_artist": "چون به این هنرمند گوش می‌دهید",
+    "recommended_reason_follow": "از هنرمندانی که دنبال می‌کنید",
+    "recommended_reason_popular": "محبوب در MusicApp"
   },
   "profile": {
     "self_follow_error": "شما نمی‌توانید خودتان را دنبال کنید.",

@@ -171,7 +171,12 @@
     "view_all": "View All",
     "tracks_count": "tracks",
     "latest_albums": "Latest Albums",
-    "single": "Single"
+    "single": "Single",
+    "recommended": "Recommended for you",
+    "recommended_reason_genre": "Because you listen to {genre}",
+    "recommended_reason_artist": "Because you listen to this artist",
+    "recommended_reason_follow": "From artists you follow",
+    "recommended_reason_popular": "Popular on MusicApp"
   },
   "profile": {
     "self_follow_error": "You cannot follow yourself.",

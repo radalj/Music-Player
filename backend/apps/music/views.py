@@ -4,8 +4,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.db.models import Sum
-from .models import Track, Album, User
+from .models import Track, Album, User, PlayHistory
 from .serializers import TrackSerializer, AlbumSerializer
+from .recommender import recommend_tracks_for_user
 from apps.core.permissions import IsArtistOrReadOnly, HasGoldAccess
 from apps.notifications.models import Notification
 
@@ -68,6 +69,7 @@ class TrackPlayView(APIView):
         track.streams += 1
         track.listeners += 1
         track.save()
+        PlayHistory.objects.create(user=user, track=track)
 
         return Response({
             'message': 'Track playback registered.',
@@ -129,3 +131,24 @@ class ArtistGoldStatsView(APIView):
             "message": "Premium Gold listener metrics retrieved."
         }
         return Response(data)
+
+
+class TrackRecommendationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            limit = int(request.query_params.get('limit', 8))
+        except (TypeError, ValueError):
+            limit = 8
+        limit = max(1, min(limit, 20))
+
+        recommendations = recommend_tracks_for_user(request.user, limit=limit)
+        payload = []
+        for item in recommendations:
+            data = TrackSerializer(item['track'], context={'request': request}).data
+            data['reason_code'] = item['reason_code']
+            data['reason_genre'] = item['reason_genre']
+            payload.append(data)
+
+        return Response({'results': payload})

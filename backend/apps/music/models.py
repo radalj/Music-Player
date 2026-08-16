@@ -20,6 +20,22 @@ class Track(models.Model):
     def __str__(self):
         return self.title
 
+
+class PlayHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='play_history')
+    track = models.ForeignKey(Track, on_delete=models.CASCADE, related_name='play_events')
+    played_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', '-played_at']),
+        ]
+        ordering = ['-played_at']
+
+    def __str__(self):
+        return f'{self.user_id} played {self.track_id}'
+
+
 class Album(models.Model):
     title = models.CharField(max_length=200)
     artist = models.ForeignKey(User, on_delete=models.CASCADE, related_name='albums')
