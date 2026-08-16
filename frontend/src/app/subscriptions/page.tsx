@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { api } from '@/services/api';
 import { extractPlans, planPrice } from '@/utils/plans';
+import { canUseSubscriptions } from '@/utils/roles';
 import { SubscriptionType } from '@/types';
 import { CheckIcon, SparklesIcon, CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
@@ -36,13 +37,16 @@ export default function SubscriptionsPage() {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      setCurrentPlanName(user.subscriptionType || 'free');
+    if (!user) return;
+    if (!canUseSubscriptions(user.role)) {
+      router.replace(user.role === 'admin' ? '/admin/dashboard' : '/home');
+      return;
     }
-  }, [user]);
+    setCurrentPlanName(user.subscriptionType || 'free');
+  }, [user, router]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !canUseSubscriptions(user.role)) return;
     api
       .get('/subscriptions/my-subscription/')
       .then((res) => {
@@ -117,6 +121,18 @@ export default function SubscriptionsPage() {
         <Sidebar />
         <main className="flex-1 flex items-center justify-center pb-28">
           <p className="text-white">Please login to view subscriptions.</p>
+        </main>
+        <Player />
+      </div>
+    );
+  }
+
+  if (!canUseSubscriptions(user.role)) {
+    return (
+      <div className="flex h-screen bg-dark">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center pb-28">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
         </main>
         <Player />
       </div>

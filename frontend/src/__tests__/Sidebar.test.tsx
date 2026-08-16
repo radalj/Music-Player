@@ -19,6 +19,7 @@ jest.mock('@/context/AuthContext', () => ({
     login: jest.fn(),
     logout: jest.fn(),
     isAuthenticated: true,
+    isReady: true,
   }),
 }));
 
@@ -41,5 +42,11 @@ describe('Sidebar Component', () => {
   it('renders admin dashboard link when user is admin', () => {
     render(<Sidebar />);
     expect(screen.getByText('sidebar.admin_dashboard')).toBeInTheDocument();
+  });
+
+  it('hides subscriptions for admin users', () => {
+    render(<Sidebar />);
+    expect(screen.queryByText('sidebar.subscriptions')).not.toBeInTheDocument();
+    expect(screen.queryByText('Subscriptions')).not.toBeInTheDocument();
   });
 });

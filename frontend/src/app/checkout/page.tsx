@@ -9,6 +9,7 @@ import Player from '@/components/common/Player';
 import { api } from '@/services/api';
 import { extractPlans, planPrice, CatalogPlan } from '@/utils/plans';
 import { SubscriptionType } from '@/types';
+import { canUseSubscriptions } from '@/utils/roles';
 import { CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -60,6 +61,12 @@ function CheckoutForm() {
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user && !canUseSubscriptions(user.role)) {
+      router.replace(user.role === 'admin' ? '/admin/dashboard' : '/home');
+    }
+  }, [user, router]);
 
   useEffect(() => {
     const loadPlans = () => {
@@ -133,6 +140,18 @@ function CheckoutForm() {
         <Sidebar />
         <main className="flex-1 flex items-center justify-center pb-28">
           <p className="text-white">Please login to continue.</p>
+        </main>
+        <Player />
+      </div>
+    );
+  }
+
+  if (!canUseSubscriptions(user.role)) {
+    return (
+      <div className="flex h-screen bg-dark">
+        <Sidebar />
+        <main className="flex-1 flex items-center justify-center pb-28">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
         </main>
         <Player />
       </div>

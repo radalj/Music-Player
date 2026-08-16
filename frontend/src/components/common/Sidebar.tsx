@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { canUseSubscriptions } from '@/utils/roles';
 import {
   HomeIcon,
   UserIcon,
@@ -43,7 +44,9 @@ export const Sidebar = () => {
     { icon: UserGroupIcon, iconSolid: UserGroupIcon, label: t('sidebar.users'), href: '/users' },
     { icon: QueueListIcon, iconSolid: QueueListIconSolid, label: t('sidebar.playlists'), href: '/playlists' },
     { icon: MusicalNoteIcon, iconSolid: MusicalNoteIconSolid, label: t('sidebar.albums_songs'), href: '/albums' },
-    { icon: SparklesIcon, iconSolid: SparklesIconSolid, label: 'Subscriptions', href: '/subscriptions' },
+    ...(canUseSubscriptions(user?.role)
+      ? [{ icon: SparklesIcon, iconSolid: SparklesIconSolid, label: t('sidebar.subscriptions') || 'Subscriptions', href: '/subscriptions' }]
+      : []),
     { icon: BellIcon, iconSolid: BellIconSolid, label: t('sidebar.notifications'), href: '/notifications' },
     { icon: Cog6ToothIcon, iconSolid: Cog6ToothIconSolid, label: t('sidebar.settings'), href: '/settings' },
   ];
