@@ -128,7 +128,7 @@ USE_TZ = True
 # تنظیمات زرین‌پال
 ZARINPAL_MERCHANT_ID = 'eaa46b01-819e-42ef-8a67-ba2bb7f69a32'  # برای sandbox از 'test' استفاده کنید
 ZARINPAL_SANDBOX = True  # برای محیط آزمایشی
-ZARINPAL_CALLBACK_URL = 'http://127.0.0.1:3000/api/payments/verify/'  # آدرس بازگشت
+ZARINPAL_CALLBACK_URL = 'http://127.0.0.1:8000/api/payments/verify/'  # آدرس بازگشت
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
