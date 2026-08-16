@@ -14,6 +14,7 @@ import {
 import { api } from '@/services/api';
 import Link from 'next/link';
 import { CheckBadgeIcon } from '@heroicons/react/24/solid';
+import toast from 'react-hot-toast';
 
 export default function ArtistPage() {
   const params = useParams();
@@ -113,19 +114,18 @@ export default function ArtistPage() {
   }, [artistId, user?.subscriptionType]);
 
   const handleFollow = async () => {
+    const wasFollowing = isFollowing;
     try {
-      if (isFollowing) {
-        await api.delete(`/users/${artistId}/follow/`);
-        setIsFollowing(false);
-        setFollowersCount((count) => Math.max(0, count - 1));
-      } else {
-        await api.post(`/users/${artistId}/follow/`);
-        setIsFollowing(true);
-        setFollowersCount((count) => count + 1);
-      }
+      const res = wasFollowing
+        ? await api.delete(`/users/${artistId}/follow/`)
+        : await api.post(`/users/${artistId}/follow/`);
+      setIsFollowing(!wasFollowing);
+      const next = Number(res.data?.followers_count);
+      setFollowersCount((count) =>
+        Number.isFinite(next) ? next : Math.max(0, count + (wasFollowing ? -1 : 1))
+      );
     } catch {
-      setIsFollowing(!isFollowing);
-      setFollowersCount(isFollowing ? followersCount - 1 : followersCount + 1);
+      toast.error('Follow failed');
     }
   };
 

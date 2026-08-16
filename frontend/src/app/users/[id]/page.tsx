@@ -30,16 +30,21 @@ export default function PublicUserPage() {
 
   const handleFollow = async () => {
     if (!profile) return;
+    const wasFollowing = Boolean(profile.is_following);
     try {
-      if (profile.is_following) {
-        await api.delete(`/users/${profile.id}/follow/`);
-        setProfile({ ...profile, is_following: false, followers_count: Math.max(0, (profile.followers_count || 0) - 1) });
-        toast.success(t('profile.unfollowed'));
-      } else {
-        await api.post(`/users/${profile.id}/follow/`);
-        setProfile({ ...profile, is_following: true, followers_count: (profile.followers_count || 0) + 1 });
-        toast.success(t('profile.followed'));
-      }
+      const res = wasFollowing
+        ? await api.delete(`/users/${profile.id}/follow/`)
+        : await api.post(`/users/${profile.id}/follow/`);
+      const nextCount = Number(res.data?.followers_count);
+      const current = Number(profile.followers_count || 0);
+      setProfile({
+        ...profile,
+        is_following: !wasFollowing,
+        followers_count: Number.isFinite(nextCount)
+          ? nextCount
+          : Math.max(0, current + (wasFollowing ? -1 : 1)),
+      });
+      toast.success(wasFollowing ? t('profile.unfollowed') : t('profile.followed'));
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Follow failed');
     }

@@ -60,25 +60,26 @@ export default function UsersPage() {
   }, [user?.id]);
 
   const handleFollow = async (target: PublicUser) => {
+    const wasFollowing = Boolean(target.is_following);
     try {
-      if (target.is_following) {
-        await api.delete(`/users/${target.id}/follow/`);
-        toast.success(t('profile.unfollowed'));
-      } else {
-        await api.post(`/users/${target.id}/follow/`);
-        toast.success(t('profile.followed'));
-      }
+      const res = wasFollowing
+        ? await api.delete(`/users/${target.id}/follow/`)
+        : await api.post(`/users/${target.id}/follow/`);
+      const nextCount = Number(res.data?.followers_count);
       setUsers((prev) =>
-        prev.map((item) =>
-          String(item.id) === String(target.id)
-            ? {
-                ...item,
-                is_following: !item.is_following,
-                followers_count: Math.max(0, (item.followers_count || 0) + (item.is_following ? -1 : 1)),
-              }
-            : item
-        )
+        prev.map((item) => {
+          if (String(item.id) !== String(target.id)) return item;
+          const current = Number(item.followers_count || 0);
+          return {
+            ...item,
+            is_following: !wasFollowing,
+            followers_count: Number.isFinite(nextCount)
+              ? nextCount
+              : Math.max(0, current + (wasFollowing ? -1 : 1)),
+          };
+        })
       );
+      toast.success(wasFollowing ? t('profile.unfollowed') : t('profile.followed'));
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.response?.data?.detail || 'Follow failed');
     }
@@ -154,8 +155,8 @@ export default function UsersPage() {
                       {item.display_name || item.username}
                     </Link>
                     <p className="text-text-secondary text-sm truncate">@{item.username} · {item.role}</p>
-                    <p className="text-text-secondary text-xs mt-1">
-                      {item.followers_count || 0} {t('profile.followers')}
+                    <p className="text-text-secondary text-xs mt-1" data-testid="user-followers-count">
+                      {Number(item.followers_count ?? 0)} {t('profile.followers')}
                     </p>
                   </div>
                   <button

@@ -382,12 +382,14 @@ export default function ProfilePage() {
         throw new Error(err.detail || 'Failed');
       }
 
+      const data = await res.json();
+      const nextCount = Number(data.followers_count);
       if (isFollowing) {
-        setFollowersCount((prev) => Math.max(0, prev - 1));
+        setFollowersCount((prev) => Number.isFinite(nextCount) ? nextCount : Math.max(0, prev - 1));
         setIsFollowing(false);
         toast.success(t('profile.unfollowed'));
       } else {
-        setFollowersCount((prev) => prev + 1);
+        setFollowersCount((prev) => Number.isFinite(nextCount) ? nextCount : prev + 1);
         setIsFollowing(true);
         toast.success(t('profile.followed'));
       }
