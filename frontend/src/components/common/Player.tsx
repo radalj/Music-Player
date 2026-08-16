@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { usePlayer, PlayerTrack } from '@/context/PlayerContext';
 import { audioSrc, mediaUrl } from '@/utils/media';
 import { api } from '@/services/api';
+import { canViewArtistStats } from '@/utils/roles';
 import {
   PlayIcon,
   PauseIcon,
@@ -513,9 +514,9 @@ export default function Player() {
             <QueueListIcon className="w-5 h-5" />
           </button>
 
-          {/* Gold-only stats */}
-          {user?.subscriptionType === 'gold' && (
-            <div className="hidden md:flex gap-2 text-xs text-text-secondary">
+          {/* Silver/Gold artist stats */}
+          {canViewArtistStats(user?.subscriptionType, user?.role) && (
+            <div className="hidden md:flex gap-2 text-xs text-text-secondary" data-testid="player-track-stats">
               <span>👂 {currentTrack.listeners.toLocaleString()}</span>
               <span>▶️ {currentTrack.streams.toLocaleString()}</span>
             </div>

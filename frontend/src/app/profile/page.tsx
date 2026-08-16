@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { CheckBadgeIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { mediaUrl } from '@/utils/media';
 import { api } from '@/services/api';
+import { canViewArtistStats } from '@/utils/roles';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
@@ -210,7 +211,7 @@ function ArtistProfileContent({
         </div>
       </div>
 
-      {user.subscription_type === 'gold' && (
+      {(isOwnProfile || canViewArtistStats(authUser?.subscriptionType || authUser?.subscription_type, authUser?.role)) && (
         <div className="bg-[#1a1a1a] rounded-xl border border-gray-800 p-6">
           <h2 className="text-xl font-bold text-white mb-4">📊 {t('profile.gold_analytics')}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

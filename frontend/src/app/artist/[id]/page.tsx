@@ -12,6 +12,7 @@ import {
   getTracksByArtistId,
 } from '@/utils/mockData';
 import { api } from '@/services/api';
+import { canViewArtistStats } from '@/utils/roles';
 import Link from 'next/link';
 import { CheckBadgeIcon } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
@@ -97,7 +98,7 @@ export default function ArtistPage() {
         setFollowersCount(foundArtist?.totalListeners || 0);
       }
 
-      if (foundArtist && user?.subscriptionType === 'gold') {
+      if (foundArtist && canViewArtistStats(user?.subscriptionType, user?.role)) {
         try {
           const statsRes = await api.get(`/music/artists/${artistId}/gold-stats/`);
           foundArtist.totalListeners = statsRes.data.total_listeners;
@@ -111,7 +112,7 @@ export default function ArtistPage() {
     };
 
     fetchArtistData();
-  }, [artistId, user?.subscriptionType]);
+  }, [artistId, user?.subscriptionType, user?.role]);
 
   const handleFollow = async () => {
     const wasFollowing = isFollowing;
@@ -192,7 +193,7 @@ export default function ArtistPage() {
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-text-secondary">
                   <span>💿 {albums.length} {t('artist.albums') || 'albums'}</span>
                   <span>🎵 {tracks.length} {t('artist.tracks') || 'tracks'}</span>
-                  {user?.subscriptionType === 'gold' && (
+                  {canViewArtistStats(user?.subscriptionType, user?.role) && (
                     <>
                       <span data-testid="artist-gold-listeners">👂 {(artist.totalListeners || followersCount).toLocaleString()} {t('artist.listeners') || 'listeners'}</span>
                       <span data-testid="artist-gold-streams">▶️ {artist.totalStreams?.toLocaleString() || 0} {t('artist.streams') || 'streams'}</span>
@@ -272,6 +273,9 @@ export default function ArtistPage() {
                     </div>
                     <div className="text-text-secondary text-xs hidden sm:block">
                       👂 {(track.listeners || 0).toLocaleString()}
+                      {canViewArtistStats(user?.subscriptionType, user?.role) ? (
+                        <span> • ▶️ {(track.streams || 0).toLocaleString()}</span>
+                      ) : null}
                     </div>
                     <div className="text-text-secondary text-xs font-mono">
                       {Math.floor((track.duration || 180) / 60)}:

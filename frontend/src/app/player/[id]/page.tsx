@@ -10,6 +10,7 @@ import { getTrackById } from '@/utils/mockData';
 import { api } from '@/services/api';
 import { usePlayer } from '@/context/PlayerContext';
 import { mediaUrl } from '@/utils/media';
+import { canViewArtistStats } from '@/utils/roles';
 import Link from 'next/link';
 import { PlayIcon, PauseIcon } from '@heroicons/react/24/solid';
 import toast from 'react-hot-toast';
@@ -146,7 +147,7 @@ export default function PlayerPage() {
                 </Link>
               )}
               <div className="flex items-center gap-4 mt-4 text-text-secondary text-sm">
-                {user?.subscriptionType === 'gold' && (
+                {canViewArtistStats(user?.subscriptionType, user?.role) && (
                   <>
                     <span data-testid="track-gold-listeners">👂 {(track.listeners || 0).toLocaleString()}</span>
                     <span data-testid="track-gold-streams">▶️ {(track.streams || 0).toLocaleString()}</span>
