@@ -65,14 +65,20 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     if (user) {
       setSettings(loadSettings(user.id));
     } else {
       setSettings(defaultSettings);
     }
-  }, [user]);
+  }, [user, isMounted]);
 
   useEffect(() => {
     if (user) {
@@ -123,6 +129,16 @@ export default function SettingsPage() {
     }
     setIsDeleting(false);
   };
+
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen bg-dark">
+        <main className="flex-1 flex items-center justify-center pb-28">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+        </main>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
