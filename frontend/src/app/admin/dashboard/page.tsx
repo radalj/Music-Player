@@ -6,6 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { api } from '@/services/api';
+import { canManageAdminSettings, isSupportStaff } from '@/utils/roles';
 import {
   TicketIcon,
   CurrencyDollarIcon,
@@ -136,29 +137,30 @@ export default function AdminDashboardPage() {
         );
       }
 
-      // 4. Plans & Prices
-      const plansRes = await api.get('/subscriptions/plans/').catch(() => null);
-      if (plansRes?.data) {
-        const plans = Array.isArray(plansRes.data) ? plansRes.data : plansRes.data.results || [];
-        const silverP = plans.find((p: any) => p.name === 'silver');
-        const goldP = plans.find((p: any) => p.name === 'gold');
-        setPrices({
-          silver: silverP ? parseFloat(silverP.price) : 9.99,
-          gold: goldP ? parseFloat(goldP.price) : 19.99,
-          silverId: silverP?.id,
-          goldId: goldP?.id,
-        });
-      }
+      // 4. Plans & Prices (admin settings)
+      if (canManageAdminSettings(user?.role)) {
+        const plansRes = await api.get('/subscriptions/plans/').catch(() => null);
+        if (plansRes?.data) {
+          const plans = Array.isArray(plansRes.data) ? plansRes.data : plansRes.data.results || [];
+          const silverP = plans.find((p: any) => p.name === 'silver');
+          const goldP = plans.find((p: any) => p.name === 'gold');
+          setPrices({
+            silver: silverP ? parseFloat(silverP.price) : 9.99,
+            gold: goldP ? parseFloat(goldP.price) : 19.99,
+            silverId: silverP?.id,
+            goldId: goldP?.id,
+          });
+        }
 
-      // 5. User Distribution Chart
-      const distRes = await api.get('/reports/revenue/subscription/').catch(() => null);
-      if (distRes?.data && distRes.data.subscription_distribution) {
-        setUserDist(
-          distRes.data.subscription_distribution.map((d: any) => ({
-            name: d.plan__name ? d.plan__name.toUpperCase() : 'FREE',
-            value: d.count,
-          }))
-        );
+        const distRes = await api.get('/reports/revenue/subscription/').catch(() => null);
+        if (distRes?.data && distRes.data.subscription_distribution) {
+          setUserDist(
+            distRes.data.subscription_distribution.map((d: any) => ({
+              name: d.plan__name ? d.plan__name.toUpperCase() : 'FREE',
+              value: d.count,
+            }))
+          );
+        }
       }
     } catch (e) {
       console.error('Error fetching admin dashboard data:', e);
@@ -167,10 +169,16 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!isReady || !user) return;
-    if (user.role === 'admin' || user.role === 'supporter') {
+    if (isSupportStaff(user.role)) {
       loadData();
     }
   }, [isReady, user]);
+
+  useEffect(() => {
+    if (!canManageAdminSettings(user?.role) && activeTab === 'settings') {
+      setActiveTab('tickets');
+    }
+  }, [user?.role, activeTab]);
 
   // ---------- Handlers ----------
   const handleVerify = async (id: string, action: 'approve' | 'reject') => {
@@ -262,7 +270,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (user.role !== 'admin' && user.role !== 'supporter') {
+  if (!isSupportStaff(user.role)) {
     return (
       <div className="min-h-screen bg-dark flex items-center justify-center">
         <p className="text-white">Access denied. You are not authorized.</p>
@@ -270,7 +278,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  const isAdmin = user.role === 'admin';
+  const canManageSettings = canManageAdminSettings(user.role);
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658'];
   const totalRevenue = financials.reduce((acc, f) => acc + f.calculatedPayout, 0);
   const totalStreams = financials.reduce((acc, f) => acc + f.totalStreams, 0);
@@ -492,10 +500,11 @@ export default function AdminDashboardPage() {
                   </span>
                 </td>
                 <td className="px-4 py-2">
-                  {f.status === 'pending' && isAdmin && (
+                  {f.status === 'pending' && (
                     <button
                       onClick={() => handleSettlePayment(f.artistId)}
                       className="text-primary hover:underline text-xs"
+                      data-testid="settle-payout"
                     >
                       Settle
                     </button>
@@ -554,7 +563,7 @@ export default function AdminDashboardPage() {
         </p>
         <button
           onClick={handlePriceUpdate}
-          disabled={!isAdmin}
+          disabled={!canManageSettings}
           data-testid="update-plan-prices"
           className="mt-4 px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition disabled:opacity-50"
         >
@@ -617,6 +626,7 @@ export default function AdminDashboardPage() {
           <div className="flex space-x-2 mb-6 border-b border-gray-800 pb-2">
             <button
               onClick={() => setActiveTab('tickets')}
+              data-testid="admin-tab-tickets"
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeTab === 'tickets' ? 'bg-gray-600 text-white' : 'text-text-secondary hover:bg-[#1a1a1a]'
               }`}
@@ -625,15 +635,17 @@ export default function AdminDashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('accounting')}
+              data-testid="admin-tab-accounting"
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                 activeTab === 'accounting' ? 'bg-gray-600 text-white' : 'text-text-secondary hover:bg-[#1a1a1a]'
               }`}
             >
               <CurrencyDollarIcon className="w-4 h-4 inline mr-1" /> Accounting
             </button>
-            {isAdmin && (
+            {canManageSettings && (
               <button
                 onClick={() => setActiveTab('settings')}
+                data-testid="admin-tab-settings"
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                   activeTab === 'settings' ? 'bg-gray-600 text-white' : 'text-text-secondary hover:bg-[#1a1a1a]'
                 }`}
@@ -646,7 +658,7 @@ export default function AdminDashboardPage() {
           <div className="bg-[#0f0f0f] rounded-xl border border-gray-800 p-6">
             {activeTab === 'tickets' && renderTicketsTab()}
             {activeTab === 'accounting' && renderAccountingTab()}
-            {activeTab === 'settings' && isAdmin && renderSettingsTab()}
+            {activeTab === 'settings' && canManageSettings && renderSettingsTab()}
           </div>
         </div>
       </main>

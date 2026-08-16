@@ -7,7 +7,7 @@ import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { api } from '@/services/api';
 import { extractPlans, planPrice } from '@/utils/plans';
-import { canUseSubscriptions } from '@/utils/roles';
+import { canUseSubscriptions, isSupportStaff } from '@/utils/roles';
 import { SubscriptionType } from '@/types';
 import { CheckIcon, SparklesIcon, CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
@@ -39,7 +39,7 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     if (!user) return;
     if (!canUseSubscriptions(user.role)) {
-      router.replace(user.role === 'admin' ? '/admin/dashboard' : '/home');
+      router.replace(isSupportStaff(user.role) ? '/admin/dashboard' : '/home');
       return;
     }
     setCurrentPlanName(user.subscriptionType || 'free');
@@ -206,6 +206,7 @@ export default function SubscriptionsPage() {
                   <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Max 100 Playlists</li>
                   <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 100 Streams / Day</li>
                   <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Custom Profile Picture</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 📊 Artist stream analytics</li>
                   <li className="flex items-center gap-2 text-gray-500">🚫 Early Access Releases</li>
                 </ul>
               </div>
@@ -236,7 +237,7 @@ export default function SubscriptionsPage() {
                   <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Unlimited Streams</li>
                   <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Custom Profile Picture</li>
                   <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> ⭐ Early Access Releases</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> 📊 Artist Gold Analytics</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> 📊 Artist stream analytics</li>
                 </ul>
               </div>
               <button

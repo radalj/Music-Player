@@ -9,7 +9,7 @@ import Player from '@/components/common/Player';
 import { api } from '@/services/api';
 import { extractPlans, planPrice, CatalogPlan } from '@/utils/plans';
 import { SubscriptionType } from '@/types';
-import { canUseSubscriptions } from '@/utils/roles';
+import { canUseSubscriptions, isSupportStaff } from '@/utils/roles';
 import { CreditCardIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -64,7 +64,7 @@ function CheckoutForm() {
 
   useEffect(() => {
     if (user && !canUseSubscriptions(user.role)) {
-      router.replace(user.role === 'admin' ? '/admin/dashboard' : '/home');
+      router.replace(isSupportStaff(user.role) ? '/admin/dashboard' : '/home');
     }
   }, [user, router]);
 
