@@ -59,6 +59,19 @@ class UserAuthAndProfileTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data)
 
+    def test_admin_login_and_profile(self):
+        response = self.client.post('/api/users/login/', {
+            'email': 'admin1@example.com',
+            'password': 'password123',
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['user']['role'], 'admin')
+        self.assertIn('access', response.data)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
+        profile = self.client.get('/api/users/profile/')
+        self.assertEqual(profile.status_code, status.HTTP_200_OK)
+        self.assertEqual(profile.data['email'], 'admin1@example.com')
+
     def test_base_user_profile_photo_upload_restriction(self):
         self.listener.subscription.plan = self.free_plan
         self.listener.subscription.save()
@@ -101,10 +114,26 @@ class UserAuthAndProfileTests(TestCase):
         response = self.client.post(f'/api/users/{self.artist.id}/follow/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(self.listener.is_following(self.artist))
+        self.assertEqual(response.data['followers_count'], 1)
+        self.assertTrue(response.data['is_following'])
+
+        listing = self.client.get('/api/users/')
+        self.assertEqual(listing.status_code, status.HTTP_200_OK)
+        results = listing.data if isinstance(listing.data, list) else listing.data.get('results', [])
+        artist_row = next(item for item in results if item['email'] == self.artist.email)
+        self.assertEqual(artist_row['followers_count'], 1)
+        self.assertTrue(artist_row['is_following'])
 
         response_del = self.client.delete(f'/api/users/{self.artist.id}/follow/')
         self.assertEqual(response_del.status_code, status.HTTP_200_OK)
         self.assertFalse(self.listener.is_following(self.artist))
+        self.assertEqual(response_del.data['followers_count'], 0)
+
+        listing_after = self.client.get('/api/users/')
+        results_after = listing_after.data if isinstance(listing_after.data, list) else listing_after.data.get('results', [])
+        artist_row_after = next(item for item in results_after if item['email'] == self.artist.email)
+        self.assertEqual(artist_row_after['followers_count'], 0)
+        self.assertFalse(artist_row_after['is_following'])
 
     def test_approve_artist_by_admin(self):
         self.client.force_authenticate(user=self.admin)

@@ -29,10 +29,10 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def get_followers_count(self, obj):
-        return obj.followers.count()
+        return obj.followers_count
 
     def get_following_count(self, obj):
-        return obj.following.count()
+        return obj.following_count
 
     def get_subscription_type(self, obj):
         sub = obj.get_subscription()

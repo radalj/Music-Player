@@ -4,12 +4,15 @@ from apps.subscriptions.models import SubscriptionPlan
 
 class IsSelfOrAdmin(permissions.BasePermission):
     """Only user themselves or admin can access"""
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
     def has_object_permission(self, request, view, obj):
+        if request.user.role == 'admin':
+            return True
         if hasattr(obj, 'user'):
-            return obj.user == request.user or request.user.role == 'admin'
-        if hasattr(obj, 'id'):
-            return obj == request.user or request.user.role == 'admin'
-        return False
+            return obj.user == request.user
+        return obj == request.user
 
 
 class IsArtistOrReadOnly(permissions.BasePermission):

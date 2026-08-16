@@ -56,18 +56,25 @@ class User(AbstractUser):
         if user == self:
             raise ValueError("You cannot follow yourself.")
         self.following.add(user)
+        user.followers.add(self)
 
     def unfollow(self, user):
         """لغو دنبال کردن یک کاربر"""
         self.following.remove(user)
+        user.followers.remove(self)
 
     def is_following(self, user):
         """بررسی آیا کاربر مورد نظر را دنبال می‌کند؟"""
         return self.following.filter(id=user.id).exists()
 
+    def follower_ids(self):
+        ids = set(self.followers.values_list('id', flat=True))
+        ids.update(self.follower_users.values_list('id', flat=True))
+        return ids
+
     @property
     def followers_count(self):
-        return self.followers.count()
+        return len(self.follower_ids())
 
     @property
     def following_count(self):

@@ -44,6 +44,12 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+        if not user.is_active:
+            return Response(
+                {'error': 'Account is disabled'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
         refresh = RefreshToken.for_user(user)
         return Response({
             'refresh': str(refresh),
@@ -96,7 +102,13 @@ class FollowUserView(APIView):
             return Response({'error': 'You cannot follow yourself.'}, status=status.HTTP_400_BAD_REQUEST)
 
         request.user.follow(target_user)
-        return Response({'message': f'You are now following {target_user.display_name}.'})
+        target_user.refresh_from_db()
+        return Response({
+            'message': f'You are now following {target_user.display_name}.',
+            'is_following': True,
+            'followers_count': target_user.followers_count,
+            'following_count': target_user.following_count,
+        })
 
     def delete(self, request, pk):
         try:
@@ -105,7 +117,13 @@ class FollowUserView(APIView):
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         request.user.unfollow(target_user)
-        return Response({'message': f'You unfollowed {target_user.display_name}.'})
+        target_user.refresh_from_db()
+        return Response({
+            'message': f'You unfollowed {target_user.display_name}.',
+            'is_following': False,
+            'followers_count': target_user.followers_count,
+            'following_count': target_user.following_count,
+        })
 
 
 class UserListView(generics.ListAPIView):
@@ -146,8 +164,8 @@ class FollowStatusView(APIView):
         target = get_object_or_404(User, pk=pk)
         return Response({
             'is_following': request.user.is_following(target),
-            'followers_count': target.followers.count(),
-            'following_count': target.following.count(),
+            'followers_count': target.followers_count,
+            'following_count': target.following_count,
         })
 
 
