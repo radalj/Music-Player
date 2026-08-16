@@ -64,7 +64,7 @@ class MonthlyFinancialReportView(APIView):
     """
     Monthly financial calculation report for artists
     """
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSupporter]
 
     def get(self, request):
         now = timezone.now()
@@ -118,9 +118,9 @@ class MonthlyFinancialReportView(APIView):
 
 class ConfirmSettlementView(APIView):
     """
-    Admin action to confirm financial settlement for an artist
+    Admin or supporter action to confirm financial settlement for an artist
     """
-    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSupporter]
 
     def post(self, request, artist_id):
         try:

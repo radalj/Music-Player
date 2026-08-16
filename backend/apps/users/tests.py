@@ -142,3 +142,17 @@ class UserAuthAndProfileTests(TestCase):
         self.artist.refresh_from_db()
         self.assertTrue(self.artist.verified)
         self.assertFalse(self.artist.awaiting_approval)
+
+    def test_supporter_can_approve_artist(self):
+        supporter = User.objects.create_user(
+            username='support1',
+            email='support1@example.com',
+            password='password123',
+            display_name='Support One',
+            role='supporter',
+        )
+        self.client.force_authenticate(user=supporter)
+        response = self.client.post(f'/api/users/artists/{self.artist.id}/approve/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.artist.refresh_from_db()
+        self.assertTrue(self.artist.verified)

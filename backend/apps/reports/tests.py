@@ -53,3 +53,19 @@ class PaymentsAndReportsTests(TestCase):
         response = self.client.post(f'/api/reports/financial/settle/{self.artist.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['status'], 'settled')
+
+    def test_supporter_can_view_and_settle_financials_but_not_subscription_revenue(self):
+        supporter = User.objects.create_user(
+            username='reportsupport',
+            email='reportsupport@example.com',
+            password='password123',
+            display_name='Report Support',
+            role='supporter',
+        )
+        self.client.force_authenticate(user=supporter)
+        monthly = self.client.get('/api/reports/financial/monthly/')
+        self.assertEqual(monthly.status_code, status.HTTP_200_OK)
+        settle = self.client.post(f'/api/reports/financial/settle/{self.artist.id}/')
+        self.assertEqual(settle.status_code, status.HTTP_200_OK)
+        revenue = self.client.get('/api/reports/revenue/subscription/')
+        self.assertEqual(revenue.status_code, status.HTTP_403_FORBIDDEN)

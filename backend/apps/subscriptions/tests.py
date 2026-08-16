@@ -68,3 +68,15 @@ class SubscriptionTests(TestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.patch('/api/subscriptions/plans/prices/', {'silver': 1, 'gold': 2})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_supporter_cannot_update_plan_prices(self):
+        supporter = User.objects.create_user(
+            username='pricesupport',
+            email='pricesupport@example.com',
+            password='password123',
+            display_name='Price Support',
+            role='supporter',
+        )
+        self.client.force_authenticate(user=supporter)
+        response = self.client.patch('/api/subscriptions/plans/prices/', {'silver': 1, 'gold': 2})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
