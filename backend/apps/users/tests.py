@@ -19,7 +19,9 @@ class UserAuthAndProfileTests(TestCase):
             display_name='Listener One',
             role='listener'
         )
-        UserSubscription.objects.create(user=self.listener, plan=self.free_plan)
+        sub = self.listener.subscription
+        sub.plan = self.free_plan
+        sub.save()
 
         self.artist = User.objects.create_user(
             username='artist1',
@@ -58,10 +60,20 @@ class UserAuthAndProfileTests(TestCase):
         self.assertIn('access', response.data)
 
     def test_base_user_profile_photo_upload_restriction(self):
+        self.listener.subscription.plan = self.free_plan
+        self.listener.subscription.save()
         self.client.force_authenticate(user=self.listener)
         dummy_image = SimpleUploadedFile("avatar.jpg", b"fake image content", content_type="image/jpeg")
         response = self.client.patch('/api/users/profile/', {'profile_image': dummy_image}, format='multipart')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_silver_user_can_start_profile_photo_upload(self):
+        self.listener.subscription.plan = self.silver_plan
+        self.listener.subscription.save()
+        self.client.force_authenticate(user=self.listener)
+        dummy_image = SimpleUploadedFile("avatar.jpg", b"fake image content", content_type="image/jpeg")
+        response = self.client.patch('/api/users/profile/', {'profile_image': dummy_image}, format='multipart')
+        self.assertNotEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_follow_and_unfollow_user(self):
         self.client.force_authenticate(user=self.listener)

@@ -3,7 +3,7 @@ from .models import User, UserSettings
 
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, min_length=6)
+    password = serializers.CharField(write_only=True, required=False, min_length=6)
     username = serializers.CharField(required=False, allow_blank=True)
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
@@ -35,7 +35,9 @@ class UserSerializer(serializers.ModelSerializer):
         return 'free'
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
+        if not password:
+            raise serializers.ValidationError({'password': 'This field is required.'})
         if not validated_data.get('username'):
             base = (validated_data.get('email') or 'user').split('@')[0] or 'user'
             username = base

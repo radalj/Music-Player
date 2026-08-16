@@ -197,14 +197,20 @@ class MockPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        plan_id = request.data.get('plan_id')
         try:
             duration_months = int(request.data.get('duration_months', 1))
         except (ValueError, TypeError):
             duration_months = 1
 
         try:
-            plan = SubscriptionPlan.objects.get(id=plan_id)
+            plan_name = request.data.get('plan') or request.data.get('plan_name')
+            plan_id = request.data.get('plan_id')
+            if plan_name:
+                plan = SubscriptionPlan.objects.get(name=str(plan_name).strip().lower())
+            elif plan_id:
+                plan = SubscriptionPlan.objects.get(id=plan_id)
+            else:
+                return Response({'error': 'Plan not found'}, status=404)
         except SubscriptionPlan.DoesNotExist:
             return Response({'error': 'Plan not found'}, status=404)
 
@@ -225,8 +231,12 @@ class MockPaymentView(APIView):
         subscription.is_active = True
         subscription.save()
 
+        user = type(request.user).objects.get(pk=request.user.pk)
+        from apps.users.serializers import UserSerializer
         return Response({
             'message': '✅ اشتراک با موفقیت فعال شد (شبیه‌سازی)',
             'plan': plan.name,
-            'expiry_date': new_expiry
+            'subscription_type': plan.name,
+            'expiry_date': new_expiry,
+            'user': UserSerializer(user, context={'request': request}).data,
         }, status=200)

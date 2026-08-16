@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework import status
 from apps.users.models import User
-from apps.subscriptions.models import SubscriptionPlan
+from apps.subscriptions.models import SubscriptionPlan, UserSubscription
 
 
 class PaymentsAndReportsTests(TestCase):
@@ -26,6 +26,19 @@ class PaymentsAndReportsTests(TestCase):
             'duration_months': 1
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_mock_payment_upgrades_to_gold_by_plan_name(self):
+        gold_plan = SubscriptionPlan.objects.create(name='gold', price=19.99)
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post('/api/payments/mock/', {
+            'plan': 'gold',
+            'duration_months': 1,
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['subscription_type'], 'gold')
+        self.assertEqual(UserSubscription.objects.get(user=self.user).plan_id, gold_plan.id)
+        profile = self.client.get('/api/users/profile/')
+        self.assertEqual(profile.data['subscription_type'], 'gold')
 
     def test_admin_dashboard_summary_and_monthly_report(self):
         self.client.force_authenticate(user=self.admin)

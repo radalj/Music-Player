@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import generics, permissions, status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from .models import User, UserSettings
 from .serializers import UserSerializer, UserSettingsSerializer
@@ -47,12 +47,12 @@ class LoginView(APIView):
         return Response({
             'refresh': str(refresh),
             'access': str(refresh.access_token),
-            'user': UserSerializer(user).data
+            'user': UserSerializer(user, context={'request': request}).data
         })
 
 
 class ProfileView(generics.RetrieveUpdateDestroyAPIView):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated, IsSelfOrAdmin]
 

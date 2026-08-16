@@ -44,9 +44,12 @@ class User(AbstractUser):
 
     def get_subscription(self):
         """دریافت اشتراک فعال کاربر"""
-        if hasattr(self, 'subscription') and self.subscription.is_active:
-            return self.subscription
-        return None
+        from apps.subscriptions.models import UserSubscription
+        return (
+            UserSubscription.objects.filter(user=self, is_active=True)
+            .select_related('plan')
+            .first()
+        )
 
     def follow(self, user):
         """دنبال کردن یک کاربر دیگر"""
