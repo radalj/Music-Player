@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, ReactNode, useCallback } from 'react';
 import { mockTracks } from '@/utils/mockData';
 
 export interface PlayerTrack {
@@ -19,13 +19,26 @@ export interface PlayerTrack {
 interface PlayerContextType {
   currentTrack: PlayerTrack | null;
   setCurrentTrack: (track: PlayerTrack | null) => void;
+  isPlaying: boolean;
+  setIsPlaying: (playing: boolean) => void;
+  playTrack: (track: PlayerTrack) => void;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<PlayerTrack | null>(mockTracks[0] ?? null);
-  const value = useMemo(() => ({ currentTrack, setCurrentTrack }), [currentTrack]);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const playTrack = useCallback((track: PlayerTrack) => {
+    setCurrentTrack(track);
+    setIsPlaying(true);
+  }, []);
+
+  const value = useMemo(
+    () => ({ currentTrack, setCurrentTrack, isPlaying, setIsPlaying, playTrack }),
+    [currentTrack, isPlaying, playTrack]
+  );
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }
 

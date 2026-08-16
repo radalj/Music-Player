@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePlayer, PlayerTrack } from '@/context/PlayerContext';
-import { mediaUrl } from '@/utils/media';
+import { audioSrc, mediaUrl } from '@/utils/media';
 import { api } from '@/services/api';
 import {
   PlayIcon,
@@ -27,11 +27,10 @@ type RepeatMode = 'none' | 'all' | 'one';
 export default function Player() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { currentTrack, setCurrentTrack } = usePlayer();
+  const { currentTrack, setCurrentTrack, isPlaying, setIsPlaying } = usePlayer();
 
   // ---------- State ----------
   const [queue] = useState<PlayerTrack[]>(() => [...mockTracks]);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -46,6 +45,8 @@ export default function Player() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   function getNextIndex(): number {
     if (isShuffled) {
@@ -102,13 +103,13 @@ export default function Player() {
     audio.preload = 'metadata'; // ✅ Preload metadata
 
     const handleLoadedMetadata = () => {
-      console.log('Audio loaded, duration:', audio.duration);
-      setDuration(audio.duration);
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+      }
     };
 
-    const handleError = (e: Event) => {
-      console.error('Audio error:', e);
-      console.log('Failed URL:', audio.src);
+    const handleError = () => {
+      // Missing/invalid sources fail silently. Do not replace a real media URL.
     };
 
     const handleEnded = () => {
@@ -130,21 +131,31 @@ export default function Player() {
     };
   }, []);
 
-  // ---------- Load track when currentTrack changes ----------
+  // ---------- Load track when the playable source changes ----------
   useEffect(() => {
     if (!currentTrack || !audioRef.current) return;
 
-    const audio = audioRef.current;
-    
-    // ✅ Reset duration before loading
-    setDuration(0);
-    setProgress(0);
-    
-    // ✅ Set the source and load
-    audio.src = mediaUrl(currentTrack.audioUrl) || currentTrack.audioUrl || '/audio/mock.mp3';
-    audio.load();
+    const nextSrc = audioSrc(currentTrack.audioUrl);
+    if (!nextSrc) return;
 
-    // ✅ Progress tracking
+    const audio = audioRef.current;
+    const alreadyLoaded = audio.getAttribute('src') === nextSrc || audio.src.endsWith(nextSrc);
+
+    if (!alreadyLoaded) {
+      setDuration(currentTrack.duration || 0);
+      setProgress(0);
+      setCurrentTime(0);
+      audio.src = nextSrc;
+      audio.load();
+    }
+
+    const resumeIfPlaying = () => {
+      if (isPlayingRef.current) {
+        audio.play().catch(() => {});
+      }
+    };
+    audio.addEventListener('canplay', resumeIfPlaying);
+
     if (progressInterval.current) {
       clearInterval(progressInterval.current);
     }
@@ -156,20 +167,17 @@ export default function Player() {
       }
     }, 100);
 
-    // If was playing, resume
-    if (isPlaying) {
-      audio.play().catch(err => console.log('Playback error:', err));
-    }
-
     return () => {
+      audio.removeEventListener('canplay', resumeIfPlaying);
       if (progressInterval.current) {
         clearInterval(progressInterval.current);
       }
     };
-  }, [currentTrack, isPlaying]);
+  }, [currentTrack?.id, currentTrack?.audioUrl]);
 
   useEffect(() => {
     if (!currentTrack?.id || currentTrack.lyrics) return;
+    if (!/^\d+$/.test(String(currentTrack.id))) return;
     const trackId = currentTrack.id;
     const snapshot = currentTrack;
     let cancelled = false;
@@ -191,7 +199,7 @@ export default function Player() {
   useEffect(() => {
     if (!audioRef.current) return;
     if (isPlaying) {
-      audioRef.current.play().catch((err) => console.log('Playback error:', err));
+      audioRef.current.play().catch(() => {});
     } else {
       audioRef.current.pause();
     }

@@ -18,14 +18,11 @@ export default function PlayerPage() {
   const params = useParams();
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { setCurrentTrack } = usePlayer();
+  const { currentTrack, isPlaying, setIsPlaying, setCurrentTrack } = usePlayer();
   const trackId = params?.id as string;
 
   const [isClient, setIsClient] = useState(false);
   const [track, setTrack] = useState<any>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,7 +46,7 @@ export default function PlayerPage() {
             duration: tData.duration || 180,
             listeners: tData.listeners || 0,
             streams: tData.streams || 0,
-            audioUrl: mediaUrl(tData.audio_file) || tData.audio_file || '/audio/track1.mp3',
+            audioUrl: mediaUrl(tData.audio_file) || tData.audio_file || '',
             lyrics: tData.lyrics || '',
             album: tData.album ? { id: tData.album.id.toString(), title: tData.album.title } : undefined,
             releaseDate: tData.release_date || new Date().toISOString(),
@@ -96,69 +93,8 @@ export default function PlayerPage() {
     loadTrack();
   }, [trackId]);
 
-  // Initialize audio
-  useEffect(() => {
-    if (!track) return;
-
-    const audio = new Audio(track.audioUrl || '/audio/mock.mp3');
-    setAudioRef(audio);
-
-    audio.addEventListener('ended', () => {
-      setIsPlaying(false);
-      setProgress(0);
-    });
-
-    return () => {
-      audio.pause();
-      audio.src = '';
-    };
-  }, [track]);
-
-  // Handle play/pause
-  useEffect(() => {
-    if (!audioRef) return;
-    if (isPlaying) {
-      audioRef.play().catch(err => console.log('Play error:', err));
-    } else {
-      audioRef.pause();
-    }
-  }, [isPlaying, audioRef]);
-
-  // Update progress
-  useEffect(() => {
-    if (!audioRef) return;
-
-    const updateProgress = () => {
-      if (audioRef.duration > 0) {
-        setProgress((audioRef.currentTime / audioRef.duration) * 100);
-      }
-    };
-
-    audioRef.addEventListener('timeupdate', updateProgress);
-
-    return () => {
-      audioRef.removeEventListener('timeupdate', updateProgress);
-    };
-  }, [audioRef]);
-
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
-  };
-
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!audioRef) return;
-    const newProgress = parseFloat(e.target.value);
-    setProgress(newProgress);
-    if (audioRef.duration > 0) {
-      audioRef.currentTime = (newProgress / 100) * audioRef.duration;
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    if (!seconds || isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (!isClient) return null;
@@ -220,33 +156,12 @@ export default function PlayerPage() {
                   {String((track.duration || 180) % 60).padStart(2, '0')}</span>
               </div>
 
-              {/* Progress Bar */}
-              <div className="w-full max-w-md mt-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-text-secondary font-mono">
-                    {formatTime(audioRef?.currentTime || 0)}
-                  </span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={progress}
-                    onChange={handleProgressChange}
-                    className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                  />
-                  <span className="text-xs text-text-secondary font-mono">
-                    {formatTime(track.duration || 180)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Play Button */}
               <div className="flex items-center gap-4 mt-6">
                 <button
                   onClick={togglePlay}
                   className="w-14 h-14 bg-primary rounded-full flex items-center justify-center hover:bg-green-400 transition cursor-pointer"
                 >
-                  {isPlaying ? (
+                  {isPlaying && currentTrack?.id === String(track.id) ? (
                     <PauseIcon className="w-7 h-7 text-black" />
                   ) : (
                     <PlayIcon className="w-7 h-7 text-black" />

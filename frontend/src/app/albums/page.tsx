@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
 import { mockAlbums, mockTracks } from '@/utils/mockData';
 import { api } from '@/services/api';
+import { mediaUrl } from '@/utils/media';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -99,7 +100,8 @@ export default function AlbumsPage() {
                 listeners: tItem.listeners || 0,
                 streams: tItem.streams || 0,
                 releaseDate: new Date(),
-                audioUrl: tItem.audio_file || '',
+                audioUrl: mediaUrl(tItem.audio_file) || tItem.audio_file || '',
+                lyrics: tItem.lyrics || '',
               })),
             }));
             setAllAlbums(formattedAlbums);
@@ -119,7 +121,7 @@ export default function AlbumsPage() {
               listeners: tItem.listeners || 0,
               streams: tItem.streams || 0,
               releaseDate: new Date(),
-              audioUrl: tItem.audio_file || '',
+              audioUrl: mediaUrl(tItem.audio_file) || tItem.audio_file || '',
               lyrics: tItem.lyrics || '',
             }));
             setAllTracks(formattedTracks);
