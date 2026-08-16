@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+    container_name: music_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app  # برای سینک شدن لحظه‌ای کدها (Live Reload) در زمان توسعه
+    environment:
+      - DEBUG=True
+
+  frontend:
+    build: 
+      context: ./frontend
+    container_name: music_frontend
+    ports:
+      - "7000:7000" # مپ کردن پورت 7000 سیستم شما به کانتینر
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # جلوگیری از اوررایت شدن ماژول‌های نود
+    depends_on:
+      - backend # فرانت‌اند بعد از بک‌اند اجرا می‌شود

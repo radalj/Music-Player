@@ -137,7 +137,7 @@ class VerifyPaymentView(APIView):
                 transaction.save()
             except Transaction.DoesNotExist:
                 pass
-            return redirect('http://localhost:3000/subscriptions?status=canceled')
+            return redirect('http://localhost:7000/subscriptions?status=canceled')
 
         try:
             transaction = Transaction.objects.get(authority=authority)
@@ -179,11 +179,11 @@ class VerifyPaymentView(APIView):
                 subscription.is_active = True
                 subscription.save()
 
-                return redirect(f'http://localhost:3000/subscriptions?status=success&ref_id={ref_id}')
+                return redirect(f'http://localhost:7000/subscriptions?status=success&ref_id={ref_id}')
             else:
                 transaction.status = 'failed'
                 transaction.save()
-                return redirect('http://localhost:3000/subscriptions?status=failed')
+                return redirect('http://localhost:7000/subscriptions?status=failed')
 
         except Exception as e:
             logger.error(f"Verify error: {e}")
