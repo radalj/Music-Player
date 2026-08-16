@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import generics, permissions, status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.shortcuts import get_object_or_404
 from .models import User, UserSettings
 from .serializers import UserSerializer, UserSettingsSerializer
 from apps.core.permissions import IsSelfOrAdmin
@@ -100,6 +101,30 @@ class FollowUserView(APIView):
 
         request.user.unfollow(target_user)
         return Response({'message': f'You unfollowed {target_user.display_name}.'})
+
+
+class UserDetailView(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request, *args, **kwargs):
+        user = self.get_object()
+        data = UserSerializer(user).data
+        data['is_following'] = request.user.is_following(user)
+        return Response(data)
+
+
+class FollowStatusView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        target = get_object_or_404(User, pk=pk)
+        return Response({
+            'is_following': request.user.is_following(target),
+            'followers_count': target.followers.count(),
+            'following_count': target.following.count(),
+        })
 
 
 class PendingArtistsView(APIView):

@@ -16,7 +16,7 @@ class TrackListCreateView(generics.ListCreateAPIView):
     serializer_class = TrackSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsArtistOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['genre', 'artist__id', 'is_single']
+    filterset_fields = ['genre', 'artist', 'is_single']
     search_fields = ['title', 'artist__display_name', 'artist__username']
     ordering_fields = ['listeners', 'streams', 'created_at']
 
@@ -81,6 +81,10 @@ class AlbumListCreateView(generics.ListCreateAPIView):
     queryset = Album.objects.all()
     serializer_class = AlbumSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsArtistOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['genre', 'artist']
+    search_fields = ['title', 'artist__display_name', 'artist__username']
+    ordering_fields = ['release_date', 'created_at']
 
     def perform_create(self, serializer):
         album = serializer.save(artist=self.request.user)

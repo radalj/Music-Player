@@ -4,6 +4,7 @@ from .models import User, UserSettings
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, min_length=6)
+    username = serializers.CharField(required=False, allow_blank=True)
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     subscription_type = serializers.SerializerMethodField()
@@ -17,6 +18,9 @@ class UserSerializer(serializers.ModelSerializer):
             'followers_count', 'following_count', 'subscription_type'
         ]
         read_only_fields = ['id', 'followers_count', 'following_count', 'subscription_type']
+        extra_kwargs = {
+            'username': {'required': False, 'allow_blank': True},
+        }
 
     def get_followers_count(self, obj):
         return obj.followers.count()
@@ -33,7 +37,13 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password')
         if not validated_data.get('username'):
-            validated_data['username'] = validated_data.get('email', '').split('@')[0]
+            base = (validated_data.get('email') or 'user').split('@')[0] or 'user'
+            username = base
+            suffix = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base}{suffix}"
+                suffix += 1
+            validated_data['username'] = username
         if validated_data.get('role') == 'artist':
             validated_data['awaiting_approval'] = True
             validated_data['verified'] = False
