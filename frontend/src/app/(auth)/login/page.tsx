@@ -53,6 +53,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
               placeholder="you@example.com"
+              data-testid="login-email"
               dir="ltr"
               required
             />
@@ -66,6 +67,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
               placeholder="••••••••"
+              data-testid="login-password"
               dir="ltr"
               required
             />
@@ -74,7 +76,8 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="login-submit"
+            className="w-full p-3 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -84,7 +87,7 @@ export default function LoginPage() {
           <Link href="/register" className="text-text-secondary hover:text-white text-sm block transition">
             Don't have an account? <span className="text-primary">Sign Up</span>
           </Link>
-          <Link href="/forgot-password" className="text-text-secondary hover:text-white text-sm block transition">
+          <Link href="/forgot-password" data-testid="forgot-password-link" className="text-text-secondary hover:text-white text-sm block transition">
             Forgot Password?
           </Link>
         </div>

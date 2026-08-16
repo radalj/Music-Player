@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full p-3 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full p-3 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'در حال ارسال...' : 'ارسال لینک بازیابی'}
             </button>

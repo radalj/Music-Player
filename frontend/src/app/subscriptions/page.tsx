@@ -266,7 +266,7 @@ export default function SubscriptionsPage() {
             <button
               onClick={handleUpgrade}
               disabled={loading || selectedPlan === 'free'}
-              className="px-8 py-3 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition flex items-center gap-2 disabled:opacity-50"
+              className="px-8 py-3 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition flex items-center gap-2 disabled:opacity-50"
             >
               <CreditCardIcon className="w-5 h-5" />
               {loading ? 'Processing Payment...' : 'Proceed to Payment'}

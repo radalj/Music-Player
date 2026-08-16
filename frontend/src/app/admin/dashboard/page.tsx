@@ -337,7 +337,7 @@ export default function AdminDashboardPage() {
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={() => handleReplyTicket(selectedTicket.id)}
-                    className="px-4 py-2 bg-primary text-white font-medium rounded hover:bg-opacity-80 transition"
+                    className="px-4 py-2 bg-primary text-white font-medium rounded hover:bg-green-400 transition"
                   >
                     Send Reply
                   </button>
@@ -534,7 +534,7 @@ export default function AdminDashboardPage() {
         </div>
         <button
           onClick={handlePriceUpdate}
-          className="mt-4 px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
+          className="mt-4 px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition"
         >
           Update Prices in DB
         </button>

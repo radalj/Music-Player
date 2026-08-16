@@ -358,7 +358,7 @@ export default function ArtistDashboardPage() {
             <h1 className="text-2xl font-bold text-white">{t('artist_dashboard.title')}</h1>
             <button
               onClick={() => { setIsCreating(true); resetForm(); }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition"
             >
               <PlusIcon className="w-5 h-5" />
               {t('artist_dashboard.new_release')}
@@ -532,7 +532,7 @@ export default function ArtistDashboardPage() {
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={editingId ? handleSaveEdit : handleCreate}
-                  className="px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
+                  className="px-6 py-2 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition"
                 >
                   {editingId ? t('artist_dashboard.save_changes') : t('artist_dashboard.publish')}
                 </button>

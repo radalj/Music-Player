@@ -44,12 +44,16 @@ export default function RegisterPage() {
         toast.error('Please accept the privacy policy');
         return;
       }
-      if (!formData.username || !formData.displayName || !formData.email || !formData.password) {
+      if (!formData.displayName || !formData.email || !formData.password) {
         toast.error('Please fill in all required fields');
         return;
       }
+      if (!formData.birthDate || !formData.gender) {
+        toast.error('Please enter birth date and gender');
+        return;
+      }
     } else {
-      if (!artistData.email || !artistData.password || !artistData.artistName) {
+      if (!artistData.email || !artistData.password || !artistData.artistName || !artistData.portfolio) {
         toast.error('Please fill in all required fields');
         return;
       }
@@ -64,20 +68,19 @@ export default function RegisterPage() {
     try {
       // ---------- ساخت payload با فیلدهای مورد قبول بک‌اند ----------
       const payload: any = {
-        username: isArtist
-          ? artistData.artistName.toLowerCase().replace(/\s/g, '')
-          : formData.username,
         email: isArtist ? artistData.email : formData.email,
         password: isArtist ? artistData.password : formData.password,
         display_name: isArtist ? artistData.artistName : formData.displayName,
         role: isArtist ? 'artist' : 'listener',
       };
 
-      // ---------- فیلدهای اختیاری (در صورت وجود) ----------
-      // portfolio در حال حاضر در سریالایزر بک‌اند نیست، بنابراین ارسال نمی‌شود.
-      // اگر بعداً اضافه شد، می‌توانید آن را شرطی ارسال کنید.
+      if (isArtist) {
+        payload.portfolio = artistData.portfolio;
+      } else {
+        payload.birth_date = formData.birthDate;
+        payload.gender = formData.gender;
+      }
 
-      // ---------- ثبت‌نام از طریق بک‌اند (با لاگین خودکار) ----------
       await register(payload);
 
       toast.success(
@@ -85,7 +88,7 @@ export default function RegisterPage() {
           ? '✅ Artist account created! Pending admin approval.'
           : '✅ Registration successful!'
       );
-      router.push('/home');
+      router.push(isArtist ? '/pending-approval' : '/home');
     } catch (error: any) {
     console.error('Registration error:', error);
     toast.error(error.message || 'Registration failed. Please try again.');
@@ -129,22 +132,6 @@ export default function RegisterPage() {
             <>
               <div>
                 <label className="block text-text-secondary text-sm font-medium mb-1">
-                  Username * <span className="text-xs text-gray-500">(unique)</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })
-                  }
-                  className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
-                  placeholder="user123"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-text-secondary text-sm font-medium mb-1">
                   Display Name *
                 </label>
                 <input
@@ -155,6 +142,7 @@ export default function RegisterPage() {
                   }
                   className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
                   placeholder="John Doe"
+                  data-testid="register-display-name"
                   required
                 />
               </div>
@@ -171,6 +159,7 @@ export default function RegisterPage() {
                   }
                   className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
                   placeholder="you@example.com"
+                  data-testid="register-email"
                   required
                 />
               </div>
@@ -210,7 +199,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-text-secondary text-sm font-medium mb-1">
-                  Birth Date
+                  Birth Date *
                 </label>
                 <input
                   type="date"
@@ -219,12 +208,14 @@ export default function RegisterPage() {
                     setFormData({ ...formData, birthDate: e.target.value })
                   }
                   className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
+                  data-testid="register-birth-date"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-text-secondary text-sm font-medium mb-1">
-                  Gender
+                  Gender *
                 </label>
                 <select
                   value={formData.gender}
@@ -232,6 +223,8 @@ export default function RegisterPage() {
                     setFormData({ ...formData, gender: e.target.value })
                   }
                   className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition"
+                  data-testid="register-gender"
+                  required
                 >
                   <option value="">Prefer not to say</option>
                   <option value="male">Male</option>
@@ -256,6 +249,7 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     className="text-primary hover:underline"
+                    data-testid="privacy-policy"
                     onClick={() => setShowPrivacyModal(true)}
                   >
                     Privacy Policy
@@ -327,9 +321,11 @@ export default function RegisterPage() {
                   className="w-full p-3 bg-[#2a2a2a] rounded text-white border border-gray-700 focus:border-primary outline-none transition resize-none"
                   placeholder="Links to your music, Instagram, etc."
                   rows={3}
+                  data-testid="register-portfolio"
+                  required
                 />
                 <p className="text-text-secondary text-xs mt-1">
-                  Optional – used for identity verification
+                  Required – used for identity verification
                 </p>
               </div>
 
@@ -342,7 +338,8 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="register-submit"
+            className="w-full p-3 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading
               ? 'Registering...'
@@ -375,7 +372,7 @@ export default function RegisterPage() {
             </div>
             <button
               onClick={() => setShowPrivacyModal(false)}
-              className="mt-6 w-full p-2 bg-primary text-black font-bold rounded-md hover:bg-opacity-80 transition"
+              className="mt-6 w-full p-2 bg-primary text-black font-bold rounded-md hover:bg-green-400 transition"
             >
               Got it
             </button>

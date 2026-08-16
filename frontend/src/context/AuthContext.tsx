@@ -6,13 +6,46 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
+  register: (userData: any) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function normalizeUser(raw: any): User {
+  const displayName = raw.displayName || raw.display_name || raw.username || '';
+  const subscriptionType = (raw.subscriptionType || raw.subscription_type || 'free') as User['subscriptionType'];
+  const followers =
+    typeof raw.followers === 'number' ? raw.followers : (raw.followers_count ?? 0);
+  const following =
+    typeof raw.following === 'number' ? raw.following : (raw.following_count ?? 0);
+
+  return {
+    ...raw,
+    id: String(raw.id),
+    username: raw.username || '',
+    email: raw.email || '',
+    role: raw.role || 'listener',
+    displayName,
+    display_name: displayName,
+    profileImage: raw.profileImage || raw.profile_image,
+    profile_image: raw.profileImage || raw.profile_image,
+    subscriptionType,
+    subscription_type: subscriptionType,
+    dailyStreams: raw.dailyStreams ?? raw.daily_streams ?? 0,
+    daily_streams: raw.dailyStreams ?? raw.daily_streams ?? 0,
+    birthDate: raw.birthDate || raw.birth_date,
+    birth_date: raw.birthDate || raw.birth_date,
+    awaitingApproval: raw.awaitingApproval ?? raw.awaiting_approval ?? false,
+    awaiting_approval: raw.awaitingApproval ?? raw.awaiting_approval ?? false,
+    followers,
+    following,
+    followers_count: raw.followers_count ?? followers,
+    following_count: raw.following_count ?? following,
+  };
+}
 
 // ---------- Provider ----------
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -21,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem('user');
       if (saved) {
         try {
-          return JSON.parse(saved);
+          return normalizeUser(JSON.parse(saved));
         } catch {
           return null;
         }
@@ -47,17 +80,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      console.log('Login response:', data); // ← لاگ برای دیباگ
 
       if (!data.user) {
         throw new Error('User data not received');
       }
 
-      const userData = data.user;
-      const tokenData = { access: data.access, refresh: data.refresh };
-      const userWithToken = { ...userData, ...tokenData };
-      localStorage.setItem('user', JSON.stringify(userWithToken));
-      setUser(userData);
+      const normalized = normalizeUser({
+        ...data.user,
+        access: data.access,
+        refresh: data.refresh,
+      });
+      localStorage.setItem('user', JSON.stringify(normalized));
+      setUser(normalized);
+      return normalized;
     } catch (error: any) {
       throw new Error(error.message || 'Login failed');
     }
@@ -89,9 +124,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      // لاگین خودکار
-      await login(userData.email, userData.password);
+      await response.json();
+      return await login(userData.email, userData.password);
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed');
     }

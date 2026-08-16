@@ -261,7 +261,7 @@ export default function HomePage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recentPlaylists.map((playlist) => (
-                    <div key={playlist.id} className="bg-[#1a1a1a] rounded-lg p-4 hover:bg-[#242424] transition cursor-pointer border border-gray-800">
+                    <Link href="/playlists" key={playlist.id} className="bg-[#1a1a1a] rounded-lg p-4 hover:bg-[#242424] transition cursor-pointer border border-gray-800">
                       <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-gray-700 rounded-md overflow-hidden flex-shrink-0">
                           <img src={playlist.coverImage || '/images/default-playlist.jpg'} alt={playlist.name} className="w-full h-full object-cover" />
@@ -272,7 +272,7 @@ export default function HomePage() {
                           <p className="text-text-secondary text-xs">{playlist.tracks?.length || 0} {t('home.tracks_count')}</p>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </section>
@@ -285,13 +285,13 @@ export default function HomePage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {latestAlbums.map((album) => (
-                    <div key={album.id} className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#242424] transition cursor-pointer border border-gray-800">
+                    <Link key={album.id} href={`/album/${album.id}`} className="bg-[#1a1a1a] rounded-lg p-3 hover:bg-[#242424] transition cursor-pointer border border-gray-800">
                       <div className="w-full aspect-square bg-gray-700 rounded-md overflow-hidden mb-2">
                         <img src={album.coverImage} alt={album.title} className="w-full h-full object-cover" />
                       </div>
                       <p className="text-white font-medium truncate text-sm">{album.title}</p>
                       <p className="text-text-secondary text-xs truncate">{album.artist?.name || 'Artist'}</p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </section>

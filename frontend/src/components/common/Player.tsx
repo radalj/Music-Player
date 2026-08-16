@@ -317,21 +317,58 @@ export default function Player() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-gray-800 z-50">
+    <>
+      {isExpanded && currentTrack && (
+        <div className="fixed inset-0 bg-[#0a0a0a] z-[60] flex flex-col" data-testid="player-expanded">
+          <div className="flex justify-end p-4">
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="text-text-secondary hover:text-white transition"
+              data-testid="player-collapse"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center px-6 pb-32 overflow-y-auto">
+            <img
+              src={currentTrack.coverImage}
+              alt={currentTrack.title}
+              className="w-64 h-64 md:w-80 md:h-80 rounded-lg object-cover mb-6"
+            />
+            <h2 className="text-white text-2xl font-bold text-center">{currentTrack.title}</h2>
+            <Link href={`/artist/${currentTrack.artist.id}`} className="text-primary mt-2">
+              {currentTrack.artist.name}
+            </Link>
+            {currentTrack.album && (
+              <Link href={`/album/${currentTrack.album.id}`} className="text-text-secondary mt-1">
+                {currentTrack.album.title}
+              </Link>
+            )}
+            {currentTrack.lyrics && (
+              <pre className="mt-6 max-w-xl w-full text-text-secondary text-sm whitespace-pre-wrap bg-[#1a1a1a] p-4 rounded-lg">
+                {currentTrack.lyrics}
+              </pre>
+            )}
+          </div>
+        </div>
+      )}
+    <div className="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-gray-800 z-50" data-testid="music-player">
       {/* Main Player */}
       <div className="flex items-center justify-between max-w-7xl mx-auto p-4 gap-4">
         {/* Track Info */}
         <div className="flex items-center gap-4 w-1/4 min-w-[180px]">
-          <div
+          <button
+            type="button"
             className="w-14 h-14 bg-gray-700 rounded-md overflow-hidden flex-shrink-0 cursor-pointer"
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => setIsExpanded(true)}
+            data-testid="player-cover"
           >
             <img
               src={currentTrack.coverImage}
               alt={currentTrack.title}
               className="w-full h-full object-cover"
             />
-          </div>
+          </button>
           <div className="min-w-0 flex-1">
             <p className="text-white text-sm font-medium truncate cursor-pointer hover:text-primary transition">
               {currentTrack.title}
@@ -339,9 +376,19 @@ export default function Player() {
             <Link
               href={`/artist/${currentTrack.artist.id}`}
               className="text-text-secondary text-xs hover:text-primary transition truncate block"
+              data-testid="player-artist-link"
             >
               {currentTrack.artist.name}
             </Link>
+            {currentTrack.album && (
+              <Link
+                href={`/album/${currentTrack.album.id}`}
+                className="text-text-secondary text-xs hover:text-primary transition truncate block"
+                data-testid="player-album-link"
+              >
+                {currentTrack.album.title}
+              </Link>
+            )}
           </div>
         </div>
 
@@ -353,6 +400,7 @@ export default function Player() {
               onClick={toggleShuffle}
               className={`text-sm transition ${isShuffled ? 'text-primary' : 'text-text-secondary hover:text-white'}`}
               title={t('player.shuffle') || 'Shuffle'}
+              data-testid="player-shuffle"
             >
               <ArrowsRightLeftIcon className="w-4 h-4" />
             </button>
@@ -362,6 +410,7 @@ export default function Player() {
               onClick={prevTrack}
               className="text-text-secondary hover:text-white transition"
               title={t('player.previous') || 'Previous'}
+              data-testid="player-prev"
             >
               <BackwardIcon className="w-5 h-5" />
             </button>
@@ -369,8 +418,9 @@ export default function Player() {
             {/* Play/Pause */}
             <button
               onClick={togglePlay}
-              className="bg-white rounded-full p-2 hover:scale-105 transition transform"
+              className="bg-white rounded-full p-2 hover:scale-105 hover:bg-gray-100 transition transform"
               title={isPlaying ? t('player.pause') || 'Pause' : t('player.play') || 'Play'}
+              data-testid="player-play"
             >
               {isPlaying ? (
                 <PauseIcon className="w-5 h-5 text-black" />
@@ -384,6 +434,7 @@ export default function Player() {
               onClick={nextTrack}
               className="text-text-secondary hover:text-white transition"
               title={t('player.next') || 'Next'}
+              data-testid="player-next"
             >
               <ForwardIcon className="w-5 h-5" />
             </button>
@@ -393,6 +444,7 @@ export default function Player() {
               onClick={toggleRepeat}
               className={`text-sm transition ${repeatMode !== 'none' ? 'text-primary' : 'text-text-secondary hover:text-white'}`}
               title={getRepeatLabel()}
+              data-testid="player-repeat"
             >
               {getRepeatIcon()}
             </button>
@@ -409,6 +461,7 @@ export default function Player() {
               max="100"
               value={progress}
               onChange={handleProgressChange}
+              data-testid="player-progress"
               className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
             />
             <span className="text-xs text-text-secondary font-mono">
@@ -419,11 +472,29 @@ export default function Player() {
 
         {/* Right Controls */}
         <div className="flex items-center gap-3 w-1/4 justify-end min-w-[130px]">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(true)}
+            className="text-text-secondary hover:text-white transition text-xs"
+            title="Expand player"
+            data-testid="player-expand"
+          >
+            ⛶
+          </button>
+          <button
+            onClick={() => setShowLyrics(!showLyrics)}
+            className={`text-text-secondary hover:text-white transition text-xs ${showLyrics ? 'text-primary' : ''}`}
+            title={t('player.lyrics') || 'Lyrics'}
+            data-testid="player-lyrics"
+          >
+            🎤
+          </button>
           {/* Queue button */}
           <button
             onClick={() => setShowQueue(!showQueue)}
             className={`text-text-secondary hover:text-white transition ${showQueue ? 'text-primary' : ''}`}
             title={t('player.queue') || 'Queue'}
+            data-testid="player-queue"
           >
             <QueueListIcon className="w-5 h-5" />
           </button>
@@ -453,6 +524,7 @@ export default function Player() {
             max="100"
             value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
+            data-testid="player-volume"
             className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white hidden sm:block"
           />
         </div>
@@ -530,5 +602,6 @@ export default function Player() {
         </div>
       )}
     </div>
+    </>
   );
 } 

@@ -171,9 +171,10 @@ export default function NotificationsPage() {
             <button
               onClick={markAllAsRead}
               disabled={unreadCount === 0}
+              data-testid="mark-all-read"
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
                 unreadCount > 0
-                  ? 'bg-primary text-black hover:bg-opacity-80'
+                  ? 'bg-primary text-black hover:bg-green-400'
                   : 'bg-gray-600 text-gray-400 cursor-not-allowed'
               }`}
             >
@@ -234,6 +235,7 @@ export default function NotificationsPage() {
                           onClick={() => markAsRead(notification.id)}
                           className="p-1.5 text-text-secondary hover:text-primary transition rounded"
                           title={t('notifications.mark_as_read_title')}
+                          data-testid="mark-as-read"
                         >
                           <CheckCircleIcon className="w-5 h-5" />
                         </button>
@@ -242,6 +244,7 @@ export default function NotificationsPage() {
                         onClick={() => deleteNotification(notification.id)}
                         className="p-1.5 text-text-secondary hover:text-red-400 transition rounded"
                         title={t('notifications.delete_title')}
+                        data-testid="delete-notification"
                       >
                         <TrashIcon className="w-5 h-5" />
                       </button>

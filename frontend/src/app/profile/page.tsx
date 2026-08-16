@@ -72,7 +72,7 @@ function ArtistProfileContent({
 }) {
   const { user: authUser } = useAuth();
   const { t } = useLanguage();
-  const isOwnProfile = authUser?.id === user.id;
+  const isOwnProfile = String(authUser?.id) === String(user.id);
 
   const artistData = {
     bio: user.bio || 'No bio available.',
@@ -151,7 +151,7 @@ function ArtistProfileContent({
               className={`px-6 py-2 rounded-full font-medium transition ${
                 isFollowing
                   ? 'bg-[#2a2a2a] text-white border border-gray-600 hover:bg-[#333]'
-                  : 'bg-primary text-black hover:bg-opacity-80'
+                  : 'bg-primary text-black hover:bg-green-400'
               }`}
             >
               {isFollowing ? t('profile.unfollow') : t('profile.follow')}
@@ -308,10 +308,10 @@ export default function ProfilePage() {
         // 3. اگر هنرمند است، آلبوم‌ها و آهنگ‌ها را دریافت کن
         if (userData.role === 'artist' || userData.role === 'pending_artist') {
           const [albumsRes, tracksRes] = await Promise.all([
-            fetch(`${API_URL}/music/albums/?artist_id=${userData.id}`, {
+            fetch(`${API_URL}/music/albums/?artist=${userData.id}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
-            fetch(`${API_URL}/music/tracks/?artist_id=${userData.id}`, {
+            fetch(`${API_URL}/music/tracks/?artist=${userData.id}`, {
               headers: { Authorization: `Bearer ${token}` },
             }),
           ]);
@@ -355,7 +355,7 @@ export default function ProfilePage() {
 
   // ---------- دنبال کردن / لغو دنبال کردن ----------
   const handleFollowToggle = async () => {
-    if (!localUser || authUser?.id === localUser.id) {
+    if (!localUser || String(authUser?.id) === String(localUser.id)) {
       toast.error(t('profile.self_follow_error'));
       return;
     }
@@ -363,9 +363,9 @@ export default function ProfilePage() {
       const token = getToken();
       if (!token) throw new Error('No token');
 
-      const endpoint = isFollowing ? 'unfollow' : 'follow';
-      const res = await fetch(`${API_URL}/users/${localUser.id}/${endpoint}/`, {
-        method: 'POST',
+      const method = isFollowing ? 'DELETE' : 'POST';
+      const res = await fetch(`${API_URL}/users/${localUser.id}/follow/`, {
+        method,
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -490,7 +490,7 @@ export default function ProfilePage() {
   };
 
   const subInfo = localUser.role === 'listener' ? getSubscriptionLabel(subscription?.plan?.name || 'free') : null;
-  const isOwnProfile = authUser?.id === localUser.id;
+  const isOwnProfile = String(authUser?.id) === String(localUser.id);
 
   return (
     <div className="flex h-screen bg-dark">
@@ -555,7 +555,7 @@ export default function ProfilePage() {
                     className={`px-6 py-2 rounded-full font-medium transition ${
                       isFollowing
                         ? 'bg-[#2a2a2a] text-white border border-gray-600 hover:bg-[#333]'
-                        : 'bg-primary text-black hover:bg-opacity-80'
+                        : 'bg-primary text-black hover:bg-green-400'
                     }`}
                   >
                     {isFollowing ? t('profile.unfollow') : t('profile.follow')}
@@ -564,6 +564,7 @@ export default function ProfilePage() {
                 {isOwnProfile && (
                   <button
                     onClick={() => setIsEditing(true)}
+                    data-testid="edit-profile"
                     className="px-6 py-2 rounded-full font-medium bg-[#2a2a2a] text-white border border-gray-600 hover:bg-[#333] transition"
                   >
                     ✏️ {t('profile.edit_profile')}
@@ -637,7 +638,7 @@ export default function ProfilePage() {
                 <div className="flex items-end gap-3 md:col-span-2">
                   <button
                     onClick={handleSaveEdit}
-                    className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition"
+                    className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition"
                   >
                     💾 {t('profile.save_changes')}
                   </button>

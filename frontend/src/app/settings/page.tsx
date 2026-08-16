@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { Sidebar } from '@/components/common/Sidebar';
 import Player from '@/components/common/Player';
+import { api } from '@/services/api';
 import {
   BellIcon,
   GlobeAltIcon,
@@ -95,42 +96,32 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') {
       toast.error('Please type "DELETE" to confirm.');
       return;
     }
     setIsDeleting(true);
-    setTimeout(() => {
-      if (user) {
-        const keysToRemove = [
-          `settings_${user.id}`,
-          `playlists_${user.id}`,
-          `notifications_initialized_${user.id}`,
-          'user',
-          'followed_artists',
-          'artist_followers',
-        ];
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-
-        try {
-          const allNotifs = JSON.parse(localStorage.getItem('notifications') || '[]');
-          const filtered = allNotifs.filter((n: any) => n.userId !== user.id);
-          localStorage.setItem('notifications', JSON.stringify(filtered));
-        } catch (e) {}
-
-        try {
-          const registered = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-          const updated = registered.filter((u: any) => u.id !== user.id);
-          localStorage.setItem('registeredUsers', JSON.stringify(updated));
-        } catch (e) {}
-
-        logout();
-        toast.success('Account deleted successfully.');
-        window.location.href = '/login';
-      }
-      setIsDeleting(false);
-    }, 1000);
+    try {
+      await api.delete('/users/profile/');
+    } catch {
+      // still wipe local session if backend already removed the user
+    }
+    if (user) {
+      const keysToRemove = [
+        `settings_${user.id}`,
+        `playlists_${user.id}`,
+        `notifications_initialized_${user.id}`,
+        'user',
+        'followed_artists',
+        'artist_followers',
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      logout();
+      toast.success('Account deleted successfully.');
+      window.location.href = '/login';
+    }
+    setIsDeleting(false);
   };
 
   if (!user) {
@@ -194,6 +185,25 @@ export default function SettingsPage() {
             </section>
 
             <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">🔊 {t('settings.sound_section') || 'System sound'}</h2>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-text-secondary">{t('settings.system_volume') || 'Player volume'}</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue={70}
+                  data-testid="settings-volume"
+                  onChange={(e) => {
+                    localStorage.setItem('system_volume', e.target.value);
+                    toast.success(`Volume: ${e.target.value}%`);
+                  }}
+                  className="w-40 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+              </div>
+            </section>
+
+            <section className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
               <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                 <GlobeAltIcon className="w-5 h-5 text-primary" />
                 {t('settings.language_section')}
@@ -238,7 +248,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={handleUpgrade}
-                    className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-opacity-80 transition"
+                    className="px-6 py-2 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition"
                   >
                     {user.subscriptionType === 'gold' ? t('settings.manage') : t('settings.upgrade')}
                   </button>

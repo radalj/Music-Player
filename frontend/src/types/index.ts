@@ -6,19 +6,31 @@ export interface User {
   id: string;
   username: string;
   displayName: string;
+  display_name?: string;
   email: string;
   profileImage?: string;
+  profile_image?: string;
   subscriptionType: SubscriptionType;
+  subscription_type?: SubscriptionType;
   role: UserRole;
   followers: number;
   following: number;
+  followers_count?: number;
+  following_count?: number;
   dailyStreams: number;
-  birthDate?: Date;
+  daily_streams?: number;
+  birthDate?: Date | string;
+  birth_date?: string;
   gender?: string;
   awaitingApproval?: boolean;
+  awaiting_approval?: boolean;
+  verified?: boolean;
+  bio?: string;
   portfolio?: string;
   submittedAt?: string;
   password?: string;
+  access?: string;
+  refresh?: string;
 }
 
 // Artist Types
@@ -87,6 +99,7 @@ export interface LoginFormData {
 }
 
 export interface RegisterFormData {
+  username?: string;
   displayName: string;
   email: string;
   password: string;
@@ -101,15 +114,4 @@ export interface ArtistRegisterFormData {
   password: string;
   artistName: string;
   portfolio: string;
-}
-
-export interface RegisterFormData {
-  username: string;          // نام کاربری (unique)
-  displayName: string;       // نام نمایشی
-  email: string;
-  password: string;
-  passwordConfirm: string;
-  birthDate: string;
-  gender: string;
-  acceptPrivacy: boolean;
 }

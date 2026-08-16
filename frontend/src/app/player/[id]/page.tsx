@@ -193,8 +193,12 @@ export default function PlayerPage() {
                 </Link>
               )}
               <div className="flex items-center gap-4 mt-4 text-text-secondary text-sm">
-                <span>👂 {(track.listeners || 0).toLocaleString()}</span>
-                <span>▶️ {(track.streams || 0).toLocaleString()}</span>
+                {user?.subscriptionType === 'gold' && (
+                  <>
+                    <span data-testid="track-gold-listeners">👂 {(track.listeners || 0).toLocaleString()}</span>
+                    <span data-testid="track-gold-streams">▶️ {(track.streams || 0).toLocaleString()}</span>
+                  </>
+                )}
                 <span>⏱️ {Math.floor((track.duration || 180) / 60)}:
                   {String((track.duration || 180) % 60).padStart(2, '0')}</span>
               </div>
@@ -223,7 +227,7 @@ export default function PlayerPage() {
               <div className="flex items-center gap-4 mt-6">
                 <button
                   onClick={togglePlay}
-                  className="w-14 h-14 bg-primary rounded-full flex items-center justify-center hover:bg-opacity-80 transition cursor-pointer"
+                  className="w-14 h-14 bg-primary rounded-full flex items-center justify-center hover:bg-green-400 transition cursor-pointer"
                 >
                   {isPlaying ? (
                     <PauseIcon className="w-7 h-7 text-black" />

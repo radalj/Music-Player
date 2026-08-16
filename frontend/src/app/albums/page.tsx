@@ -267,16 +267,14 @@ export default function AlbumsPage() {
                       />
                     </div>
                     <p className="text-white font-medium truncate text-sm">{album.title}</p>
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.location.href = `/artist/${album.artist.id}`;
-                      }}
-                      className="text-text-secondary text-xs hover:text-primary transition truncate block cursor-pointer"
+                    <Link
+                      href={`/artist/${album.artist.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-text-secondary text-xs hover:text-primary transition truncate block"
+                      data-testid="album-artist-link"
                     >
                       {album.artist.name}
-                    </span>
+                    </Link>
                     <p className="text-text-secondary text-xs mt-1">
                       {album.tracks.length} {t('albums.tracks_count')} • {new Date(album.releaseDate).getFullYear()}
                     </p>

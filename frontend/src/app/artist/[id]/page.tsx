@@ -44,8 +44,8 @@ export default function ArtistPage() {
       try {
         const [userRes, albumsRes, tracksRes] = await Promise.all([
           api.get(`/users/${artistId}/`).catch(() => null),
-          api.get(`/music/albums/?artist_id=${artistId}`).catch(() => null),
-          api.get(`/music/tracks/?artist_id=${artistId}`).catch(() => null),
+          api.get(`/music/albums/?artist=${artistId}`).catch(() => null),
+          api.get(`/music/tracks/?artist=${artistId}`).catch(() => null),
         ]);
 
         if (userRes?.data) {
@@ -59,6 +59,8 @@ export default function ArtistPage() {
             totalListeners: u.total_listeners || u.followers_count || 0,
             totalStreams: u.total_streams || 0,
           };
+          setIsFollowing(!!u.is_following);
+          setFollowersCount(u.followers_count || 0);
         }
 
         if (albumsRes?.data) {
@@ -91,20 +93,40 @@ export default function ArtistPage() {
         foundArtist = getArtistById(artistId);
         foundAlbums = getAlbumsByArtistId(artistId);
         foundTracks = getTracksByArtistId(artistId);
+        setFollowersCount(foundArtist?.totalListeners || 0);
+      }
+
+      if (foundArtist && user?.subscriptionType === 'gold') {
+        try {
+          const statsRes = await api.get(`/music/artists/${artistId}/gold-stats/`);
+          foundArtist.totalListeners = statsRes.data.total_listeners;
+          foundArtist.totalStreams = statsRes.data.total_streams;
+        } catch {}
       }
 
       setArtist(foundArtist);
       setAlbums(foundAlbums);
       setTracks(foundTracks);
-      setFollowersCount(foundArtist?.totalListeners || 0);
     };
 
     fetchArtistData();
-  }, [artistId]);
+  }, [artistId, user?.subscriptionType]);
 
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing);
-    setFollowersCount(isFollowing ? followersCount - 1 : followersCount + 1);
+  const handleFollow = async () => {
+    try {
+      if (isFollowing) {
+        await api.delete(`/users/${artistId}/follow/`);
+        setIsFollowing(false);
+        setFollowersCount((count) => Math.max(0, count - 1));
+      } else {
+        await api.post(`/users/${artistId}/follow/`);
+        setIsFollowing(true);
+        setFollowersCount((count) => count + 1);
+      }
+    } catch {
+      setIsFollowing(!isFollowing);
+      setFollowersCount(isFollowing ? followersCount - 1 : followersCount + 1);
+    }
   };
 
   if (!isClient) {
@@ -160,7 +182,7 @@ export default function ArtistPage() {
                     className={`px-4 py-1 rounded-full text-sm font-medium transition ${
                       isFollowing
                         ? 'bg-[#2a2a2a] text-white border border-gray-600'
-                        : 'bg-primary text-black hover:bg-opacity-80'
+                        : 'bg-primary text-black hover:bg-green-400'
                     }`}
                   >
                     {isFollowing ? 'Following' : 'Follow'}
@@ -168,10 +190,14 @@ export default function ArtistPage() {
                 </div>
                 <p className="text-text-secondary text-sm mt-1">{artist.bio}</p>
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-text-secondary">
-                  <span>👂 {followersCount.toLocaleString()} {t('artist.listeners') || 'listeners'}</span>
-                  <span>▶️ {artist.totalStreams?.toLocaleString() || 0} {t('artist.streams') || 'streams'}</span>
                   <span>💿 {albums.length} {t('artist.albums') || 'albums'}</span>
                   <span>🎵 {tracks.length} {t('artist.tracks') || 'tracks'}</span>
+                  {user?.subscriptionType === 'gold' && (
+                    <>
+                      <span data-testid="artist-gold-listeners">👂 {(artist.totalListeners || followersCount).toLocaleString()} {t('artist.listeners') || 'listeners'}</span>
+                      <span data-testid="artist-gold-streams">▶️ {artist.totalStreams?.toLocaleString() || 0} {t('artist.streams') || 'streams'}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -234,9 +234,10 @@ export default function PlaylistsPage() {
               <button
                 onClick={() => setIsCreating(true)}
                 disabled={!canCreate}
+                data-testid="create-playlist"
                 className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
                   canCreate
-                    ? 'bg-primary text-black hover:bg-opacity-80'
+                    ? 'bg-primary text-black hover:bg-green-400'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -261,7 +262,7 @@ export default function PlaylistsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={handleCreate}
-                  className="px-4 py-2 bg-primary text-black font-medium rounded hover:bg-opacity-80 transition"
+                  className="px-4 py-2 bg-primary text-black font-medium rounded hover:bg-green-400 transition"
                 >
                   {t('playlists.create')}
                 </button>
@@ -283,7 +284,7 @@ export default function PlaylistsPage() {
               <p className="text-text-secondary mb-6">{t('playlists.empty_desc')}</p>
               <button
                 onClick={() => setIsCreating(true)}
-                className="px-6 py-3 bg-primary text-black font-medium rounded-full hover:bg-opacity-80 transition"
+                className="px-6 py-3 bg-primary text-black font-medium rounded-full hover:bg-green-400 transition"
               >
                 {t('playlists.create_first')}
               </button>
@@ -310,7 +311,7 @@ export default function PlaylistsPage() {
                       />
                       <button
                         onClick={() => handleSaveEdit(playlist.id)}
-                        className="px-3 py-1 bg-primary text-black text-xs font-medium rounded hover:bg-opacity-80 transition"
+                        className="px-3 py-1 bg-primary text-black text-xs font-medium rounded hover:bg-green-400 transition"
                       >
                         {t('playlists.save')}
                       </button>
