@@ -7,7 +7,7 @@ from django.db.models import Sum
 from .models import Track, Album, User, PlayHistory
 from .serializers import TrackSerializer, AlbumSerializer
 from .recommender import recommend_tracks_for_user
-from apps.core.permissions import IsArtistOrReadOnly, HasGoldAccess
+from apps.core.permissions import IsArtistOrReadOnly, HasAnalyticsAccess
 from apps.notifications.models import Notification
 
 
@@ -110,9 +110,9 @@ class AlbumRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 class ArtistGoldStatsView(APIView):
     """
-    Advanced artist listener & stream statistics - restricted to Gold tier subscribers.
+    Artist listener and stream statistics for Silver and Gold subscribers.
     """
-    permission_classes = [permissions.IsAuthenticated, HasGoldAccess]
+    permission_classes = [permissions.IsAuthenticated, HasAnalyticsAccess]
 
     def get(self, request, artist_id):
         try:
@@ -128,7 +128,7 @@ class ArtistGoldStatsView(APIView):
             "artist_name": artist.display_name,
             "total_listeners": total_listeners,
             "total_streams": total_streams,
-            "message": "Premium Gold listener metrics retrieved."
+            "message": "Premium listener metrics retrieved."
         }
         return Response(data)
 

@@ -76,3 +76,24 @@ class HasGoldAccess(permissions.BasePermission):
             return subscription.plan and subscription.plan.name == 'gold'
         except Exception:
             return False
+
+
+class HasAnalyticsAccess(permissions.BasePermission):
+    """Silver and Gold subscribers (and admins) can view artist stream analytics."""
+    message = 'Artist analytics require a Silver or Gold subscription.'
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if getattr(user, 'role', None) == 'admin':
+            return True
+        try:
+            plan = user.subscription.plan
+        except Exception:
+            return False
+        if not plan:
+            return False
+        if plan.show_analytics:
+            return True
+        return plan.name in ('silver', 'gold')

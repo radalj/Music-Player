@@ -26,7 +26,7 @@ PLAN_DEFAULTS = {
         'can_upload_profile': True,
         'can_download': True,
         'early_access': False,
-        'show_analytics': False,
+        'show_analytics': True,
     },
     'gold': {
         'price': Decimal('19.99'),

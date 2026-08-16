@@ -37,7 +37,7 @@ class Command(BaseCommand):
                      'early_access': False, 'show_analytics': False},
             'silver': {'price': 9.99, 'max_playlists': 100, 'max_streams_per_day': 100,
                        'can_upload_profile': True, 'can_download': True,
-                       'early_access': False, 'show_analytics': False},
+                       'early_access': False, 'show_analytics': True},
             'gold': {'price': 19.99, 'max_playlists': None, 'max_streams_per_day': None,
                      'can_upload_profile': True, 'can_download': True,
                      'early_access': True, 'show_analytics': True},
@@ -84,6 +84,10 @@ class Command(BaseCommand):
         gold = upsert_user(
             'gold@music.app', 'golduser', 'Gold Listener', 'listener', 'gold',
             birth_date=date(1994, 8, 21), gender='male',
+        )
+        upsert_user(
+            'silver@music.app', 'silveruser', 'Silver Listener', 'listener', 'silver',
+            birth_date=date(1996, 2, 9), gender='female',
         )
         artist = upsert_user(
             'artist@music.app', 'midnight', 'The Midnight Waves', 'artist', 'free',
@@ -252,6 +256,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             'Demo data ready. Accounts (password: Password123!):\n'
             '  listener@music.app (free)\n'
+            '  silver@music.app (silver)\n'
             '  gold@music.app (gold)\n'
             '  artist@music.app (verified artist)\n'
             '  pending.artist@music.app (awaiting approval)\n'

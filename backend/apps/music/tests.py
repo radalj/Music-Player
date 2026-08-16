@@ -102,6 +102,41 @@ class MusicTests(TestCase):
         res3 = self.client.post(f'/api/music/tracks/{self.track.id}/play/')
         self.assertEqual(res3.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
+    def test_free_listener_cannot_view_artist_stats(self):
+        self.track.listeners = 10
+        self.track.streams = 40
+        self.track.save()
+        self.client.force_authenticate(user=self.listener)
+        response = self.client.get(f'/api/music/artists/{self.artist.id}/gold-stats/')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_silver_and_gold_listeners_can_view_artist_stats(self):
+        from apps.subscriptions.models import SubscriptionPlan
+
+        self.track.listeners = 12
+        self.track.streams = 55
+        self.track.save()
+        silver_plan = SubscriptionPlan.objects.create(
+            name='silver', price=10, max_playlists=100, show_analytics=True
+        )
+        gold_plan = SubscriptionPlan.objects.create(
+            name='gold', price=20, max_playlists=None, show_analytics=True
+        )
+
+        self.listener.subscription.plan = silver_plan
+        self.listener.subscription.save()
+        self.client.force_authenticate(user=self.listener)
+        silver_res = self.client.get(f'/api/music/artists/{self.artist.id}/gold-stats/')
+        self.assertEqual(silver_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(silver_res.data['total_listeners'], 12)
+        self.assertEqual(silver_res.data['total_streams'], 55)
+
+        self.listener.subscription.plan = gold_plan
+        self.listener.subscription.save()
+        gold_res = self.client.get(f'/api/music/artists/{self.artist.id}/gold-stats/')
+        self.assertEqual(gold_res.status_code, status.HTTP_200_OK)
+        self.assertEqual(gold_res.data['total_streams'], 55)
+
 
 class RecommendationTests(TestCase):
     def setUp(self):
