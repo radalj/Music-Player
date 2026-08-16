@@ -23,8 +23,21 @@ test.describe('Admin login and artist uploads', () => {
   test('admin can sign in and reach the admin dashboard', async ({ page }) => {
     await login(page, ADMIN.email, ADMIN.password);
     await expect(page).toHaveURL(/\/admin\/dashboard/, { timeout: 15000 });
-    await expect(page.getByText(/ticket|admin|verification|accounting/i).first()).toBeVisible();
+    await expect(page.getByTestId('admin-tab-tickets')).toBeVisible();
+    await expect(page.getByTestId('admin-tab-accounting')).toBeVisible();
+    await expect(page.getByTestId('admin-tab-settings')).toBeVisible();
     await expect(page.getByText(/access denied|please login/i)).toHaveCount(0);
+  });
+
+  test('supporter can use tickets and accounting but not settings', async ({ page }) => {
+    await login(page, 'support@music.app', 'Password123!');
+    await expect(page).toHaveURL(/\/admin\/dashboard/, { timeout: 15000 });
+    await expect(page.getByTestId('admin-tab-tickets')).toBeVisible();
+    await expect(page.getByTestId('admin-tab-accounting')).toBeVisible();
+    await expect(page.getByTestId('admin-tab-settings')).toHaveCount(0);
+    await expect(page.getByText(/subscription prices|update prices/i)).toHaveCount(0);
+    await page.getByTestId('admin-tab-accounting').click();
+    await expect(page.getByText(/accounting|payout|financial/i).first()).toBeVisible();
   });
 
   test('artist can upload a track with lyrics', async ({ page }) => {
