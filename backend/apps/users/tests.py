@@ -75,6 +75,27 @@ class UserAuthAndProfileTests(TestCase):
         response = self.client.patch('/api/users/profile/', {'profile_image': dummy_image}, format='multipart')
         self.assertNotEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_profile_json_patch_updates_display_name(self):
+        self.client.force_authenticate(user=self.listener)
+        response = self.client.patch(
+            '/api/users/profile/',
+            {'display_name': 'Updated Listener', 'gender': 'female'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['display_name'], 'Updated Listener')
+        self.listener.refresh_from_db()
+        self.assertEqual(self.listener.display_name, 'Updated Listener')
+
+    def test_list_other_users(self):
+        self.client.force_authenticate(user=self.listener)
+        response = self.client.get('/api/users/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data if isinstance(response.data, list) else response.data.get('results', [])
+        emails = [item['email'] for item in results]
+        self.assertIn(self.artist.email, emails)
+        self.assertNotIn(self.listener.email, emails)
+
     def test_follow_and_unfollow_user(self):
         self.client.force_authenticate(user=self.listener)
         response = self.client.post(f'/api/users/{self.artist.id}/follow/')

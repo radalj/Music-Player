@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import generics, permissions, status
@@ -52,7 +53,7 @@ class LoginView(APIView):
 
 
 class ProfileView(generics.RetrieveUpdateDestroyAPIView):
-    parser_classes = [JSONParser, MultiPartParser, FormParser]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated, IsSelfOrAdmin]
 
@@ -61,8 +62,11 @@ class ProfileView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         user = self.get_object()
-        # Enforce profile photo upload restriction for base/free subscription
-        if 'profile_image' in request.FILES or ('profile_image' in request.data and request.data['profile_image']):
+        has_photo = bool(request.FILES.get('profile_image'))
+        if not has_photo:
+            raw_photo = request.data.get('profile_image') if hasattr(request.data, 'get') else None
+            has_photo = bool(raw_photo) and not isinstance(raw_photo, str)
+        if has_photo:
             sub = user.get_subscription()
             sub_tier = sub.plan.name if (sub and sub.plan) else 'free'
             if sub_tier == 'free':
@@ -70,6 +74,7 @@ class ProfileView(generics.RetrieveUpdateDestroyAPIView):
                     {'error': 'Base/Free subscription tier does not allow profile photo uploads.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
+        kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
 
     def delete(self, request, *args, **kwargs):
@@ -103,6 +108,25 @@ class FollowUserView(APIView):
         return Response({'message': f'You unfollowed {target_user.display_name}.'})
 
 
+class UserListView(generics.ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = User.objects.exclude(id=self.request.user.id).order_by('display_name', 'username')
+        search = (self.request.query_params.get('search') or '').strip()
+        role = (self.request.query_params.get('role') or '').strip()
+        if search:
+            qs = qs.filter(
+                Q(display_name__icontains=search)
+                | Q(username__icontains=search)
+                | Q(email__icontains=search)
+            )
+        if role:
+            qs = qs.filter(role=role)
+        return qs
+
+
 class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -110,7 +134,7 @@ class UserDetailView(generics.RetrieveAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         user = self.get_object()
-        data = UserSerializer(user).data
+        data = UserSerializer(user, context={'request': request}).data
         data['is_following'] = request.user.is_following(user)
         return Response(data)
 

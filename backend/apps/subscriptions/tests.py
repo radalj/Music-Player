@@ -22,7 +22,7 @@ class SubscriptionTests(TestCase):
     def test_list_plans(self):
         response = self.client.get('/api/subscriptions/plans/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        results = response.data.get('results', response.data)
+        results = response.data if isinstance(response.data, list) else response.data.get('results', response.data)
         self.assertEqual(len(results), 3)
 
     def test_get_my_subscription(self):
@@ -36,3 +36,35 @@ class SubscriptionTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.silver_plan.refresh_from_db()
         self.assertEqual(float(self.silver_plan.price), 12.99)
+
+    def test_admin_price_change_applies_to_all_users(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch('/api/subscriptions/plans/prices/', {
+            'silver': '15.50',
+            'gold': '29.00',
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.silver_plan.refresh_from_db()
+        self.gold_plan.refresh_from_db()
+        self.assertEqual(float(self.silver_plan.price), 15.50)
+        self.assertEqual(float(self.gold_plan.price), 29.00)
+
+        self.client.force_authenticate(user=self.user)
+        listed = self.client.get('/api/subscriptions/plans/')
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        plans = listed.data if isinstance(listed.data, list) else listed.data.get('results', listed.data)
+        by_name = {item['name']: float(item['price']) for item in plans}
+        self.assertEqual(by_name['silver'], 15.50)
+        self.assertEqual(by_name['gold'], 29.00)
+
+        UserSubscription.objects.filter(user=self.user).update(plan=self.gold_plan, is_active=True)
+        mine = self.client.get('/api/subscriptions/my-subscription/')
+        self.assertEqual(mine.status_code, status.HTTP_200_OK)
+        self.assertEqual(mine.data['plan']['name'], 'gold')
+        self.assertEqual(float(mine.data['plan']['price']), 29.00)
+
+    def test_listener_cannot_update_plan_prices(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch('/api/subscriptions/plans/prices/', {'silver': 1, 'gold': 2})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

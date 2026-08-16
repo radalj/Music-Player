@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     RegisterView, LoginView, ProfileView, UserSettingsView,
     FollowUserView, PendingArtistsView, ApproveArtistView, RejectArtistView,
-    UserDetailView, FollowStatusView
+    UserDetailView, FollowStatusView, UserListView
 )
 
 urlpatterns = [
@@ -13,6 +13,7 @@ urlpatterns = [
     path('pending-artists/', PendingArtistsView.as_view(), name='pending-artists'),
     path('artists/<int:pk>/approve/', ApproveArtistView.as_view(), name='approve-artist'),
     path('artists/<int:pk>/reject/', RejectArtistView.as_view(), name='reject-artist'),
+    path('', UserListView.as_view(), name='user-list'),
     path('<int:pk>/follow/', FollowUserView.as_view(), name='follow-user'),
     path('<int:pk>/follow-status/', FollowStatusView.as_view(), name='follow-status'),
     path('<int:pk>/', UserDetailView.as_view(), name='user-detail'),

@@ -13,7 +13,9 @@ class PlaylistTests(TestCase):
         self.user = User.objects.create_user(
             username='playuser', email='playuser@example.com', password='password123', display_name='Playlist User'
         )
-        UserSubscription.objects.create(user=self.user, plan=self.free_plan)
+        sub = self.user.subscription
+        sub.plan = self.free_plan
+        sub.save()
 
     def test_create_playlist(self):
         self.client.force_authenticate(user=self.user)
@@ -29,3 +31,10 @@ class PlaylistTests(TestCase):
         # 3rd playlist creation should be forbidden for free tier (max 2)
         response = self.client.post('/api/playlists/', {'name': 'Playlist 3'})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_playlist(self):
+        self.client.force_authenticate(user=self.user)
+        playlist = Playlist.objects.create(creator=self.user, name='Throwaway')
+        response = self.client.delete(f'/api/playlists/{playlist.id}/')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Playlist.objects.filter(id=playlist.id).exists())

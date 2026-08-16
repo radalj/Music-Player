@@ -8,6 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     subscription_type = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -15,11 +16,16 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'display_name', 'password',
             'role', 'profile_image', 'birth_date', 'gender', 'bio',
             'portfolio', 'verified', 'awaiting_approval', 'daily_streams',
-            'followers_count', 'following_count', 'subscription_type'
+            'followers_count', 'following_count', 'subscription_type', 'is_following'
         ]
-        read_only_fields = ['id', 'followers_count', 'following_count', 'subscription_type']
+        read_only_fields = [
+            'id', 'followers_count', 'following_count', 'subscription_type', 'is_following',
+        ]
         extra_kwargs = {
             'username': {'required': False, 'allow_blank': True},
+            'gender': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'birth_date': {'required': False, 'allow_null': True},
+            'bio': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
 
     def get_followers_count(self, obj):
@@ -33,6 +39,13 @@ class UserSerializer(serializers.ModelSerializer):
         if sub and sub.plan:
             return sub.plan.name
         return 'free'
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated or user.id == obj.id:
+            return False
+        return user.is_following(obj)
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -54,6 +67,11 @@ class UserSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+    def update(self, instance, validated_data):
+        for locked in ('role', 'verified', 'awaiting_approval', 'daily_streams', 'password'):
+            validated_data.pop(locked, None)
+        return super().update(instance, validated_data)
 
 
 class UserSettingsSerializer(serializers.ModelSerializer):

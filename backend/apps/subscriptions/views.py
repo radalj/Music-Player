@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,11 +9,49 @@ from .serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer
 from apps.core.permissions import IsAdminUser
 
 
+PLAN_DEFAULTS = {
+    'free': {
+        'price': Decimal('0'),
+        'max_playlists': 6,
+        'max_streams_per_day': 60,
+        'can_upload_profile': False,
+        'can_download': False,
+        'early_access': False,
+        'show_analytics': False,
+    },
+    'silver': {
+        'price': Decimal('9.99'),
+        'max_playlists': 100,
+        'max_streams_per_day': 100,
+        'can_upload_profile': True,
+        'can_download': True,
+        'early_access': False,
+        'show_analytics': False,
+    },
+    'gold': {
+        'price': Decimal('19.99'),
+        'max_playlists': None,
+        'max_streams_per_day': None,
+        'can_upload_profile': True,
+        'can_download': True,
+        'early_access': True,
+        'show_analytics': True,
+    },
+}
+
+
+def ensure_plan(name):
+    defaults = PLAN_DEFAULTS.get(name, {'price': Decimal('0')})
+    plan, _ = SubscriptionPlan.objects.get_or_create(name=name, defaults=defaults)
+    return plan
+
+
 class SubscriptionPlanListView(generics.ListAPIView):
     """List all subscription plans"""
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanSerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
 
 
 class AdminUpdatePlanPriceView(generics.RetrieveUpdateAPIView):
@@ -20,6 +59,42 @@ class AdminUpdatePlanPriceView(generics.RetrieveUpdateAPIView):
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanSerializer
     permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
+
+class AdminBulkUpdatePlanPricesView(APIView):
+    """Update shared silver/gold catalog prices so every user sees the new amounts."""
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
+
+    def patch(self, request):
+        payload = request.data or {}
+        updated = []
+        for name in ('silver', 'gold'):
+            if name not in payload:
+                continue
+            try:
+                price = Decimal(str(payload[name]))
+            except (InvalidOperation, TypeError, ValueError):
+                return Response(
+                    {'error': f'Invalid price for {name}.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if price < 0:
+                return Response(
+                    {'error': f'Price for {name} cannot be negative.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            plan = ensure_plan(name)
+            plan.price = price
+            plan.save(update_fields=['price'])
+            updated.append(plan)
+
+        if not updated:
+            return Response({'error': 'Provide silver and/or gold prices.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'message': 'Subscription prices updated for all users.',
+            'plans': SubscriptionPlanSerializer(SubscriptionPlan.objects.all(), many=True).data,
+        })
 
 
 class MySubscriptionView(generics.RetrieveAPIView):
