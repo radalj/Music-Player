@@ -206,6 +206,20 @@ export default function Player() {
     }
   }, [isPlaying]);
 
+  const loggedTrackId = useRef<string | number | null>(null);
+
+  useEffect(() => {
+    if (isPlaying && currentTrack && currentTrack.id !== loggedTrackId.current) {
+      loggedTrackId.current = currentTrack.id;
+      
+      api.post(`/music/tracks/${currentTrack.id}/play/`)
+        .then((res) => {
+        })
+        .catch(() => {});
+    }
+  }, [isPlaying, currentTrack?.id]);
+  // ===================================
+
   // ---------- Handle repeat one ----------
   useEffect(() => {
     if (!audioRef.current) return;

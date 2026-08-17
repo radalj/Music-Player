@@ -90,13 +90,13 @@ export default function SubscriptionsPage() {
 
   const handleUpgrade = () => {
     if (!user) {
-      toast.error('Please login to upgrade subscription');
+      toast.error(t('subscriptions_page.login_to_upgrade'));
       router.push('/login');
       return;
     }
 
     if (selectedPlan === 'free') {
-      toast.error('Free plan is already default');
+      toast.error(t('subscriptions_page.free_is_default'));
       return;
     }
 
@@ -120,7 +120,7 @@ export default function SubscriptionsPage() {
       <div className="flex h-screen bg-dark">
         <Sidebar />
         <main className="flex-1 flex items-center justify-center pb-28">
-          <p className="text-white">Please login to view subscriptions.</p>
+          <p className="text-white">{t('subscriptions_page.login_required')}</p>
         </main>
         <Player />
       </div>
@@ -145,12 +145,12 @@ export default function SubscriptionsPage() {
       <main className="flex-1 overflow-y-auto pb-28">
         <div className="max-w-5xl mx-auto p-6">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">⭐ Upgrade Your Subscription</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">{t('subscriptions_page.title')}</h1>
             <p className="text-text-secondary">
-              Unlock unlimited streams, higher playlist quotas, early access releases, and premium audio quality.
+              {t('subscriptions_page.subtitle')}
             </p>
             <div className="mt-4 inline-block bg-[#1a1a1a] border border-gray-800 rounded-full px-4 py-1.5 text-sm text-text-secondary">
-              Current Plan: <span className="text-primary font-bold uppercase">{currentPlanName}</span>
+              {t('subscriptions_page.current_plan')} <span className="text-primary font-bold uppercase">{t(`subscription.${currentPlanName}`)}</span>
             </div>
           </div>
 
@@ -164,7 +164,7 @@ export default function SubscriptionsPage() {
                     durationMonths === m ? 'bg-primary text-black' : 'text-text-secondary hover:text-white'
                   }`}
                 >
-                  {m} Month{m > 1 ? 's' : ''} {m === 12 && ' (Best Value)'}
+                  {m} {t('subscriptions_page.months')} {m === 12 && t('subscriptions_page.best_value')}
                 </button>
               ))}
             </div>
@@ -175,21 +175,21 @@ export default function SubscriptionsPage() {
               selectedPlan === 'free' ? 'border-gray-500' : 'border-gray-800'
             }`}>
               <div>
-                <h3 className="text-xl font-bold text-white mb-1">Base / Free</h3>
-                <p className="text-text-secondary text-sm mb-4">Essential music streaming</p>
-                <div className="text-3xl font-bold text-white mb-6">$0 <span className="text-xs text-text-secondary">/ forever</span></div>
+                <h3 className="text-xl font-bold text-white mb-1">{t('subscriptions_page.free_title')}</h3>
+                <p className="text-text-secondary text-sm mb-4">{t('subscriptions_page.free_desc')}</p>
+                <div className="text-3xl font-bold text-white mb-6">$0 <span className="text-xs text-text-secondary">/ {t('subscriptions_page.forever')}</span></div>
                 <ul className="space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Max 6 Playlists</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 60 Streams / Day</li>
-                  <li className="flex items-center gap-2 text-gray-500">🚫 Profile Picture Upload</li>
-                  <li className="flex items-center gap-2 text-gray-500">🚫 Early Access Releases</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> {t('subscriptions_page.max_6_playlists')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> {t('subscriptions_page.streams_60')}</li>
+                  <li className="flex items-center gap-2 text-gray-500">{t('subscriptions_page.no_profile_pic')}</li>
+                  <li className="flex items-center gap-2 text-gray-500">{t('subscriptions_page.no_early_access')}</li>
                 </ul>
               </div>
               <button
                 disabled
                 className="mt-6 w-full py-2.5 bg-gray-800 text-gray-500 font-medium rounded-xl cursor-not-allowed"
               >
-                Current Default
+                {t('subscriptions_page.current_default')}
               </button>
             </div>
 
@@ -197,17 +197,17 @@ export default function SubscriptionsPage() {
               selectedPlan === 'silver' ? 'border-primary ring-2 ring-primary/20' : 'border-gray-800'
             }`}>
               <div>
-                <h3 className="text-xl font-bold text-white mb-1">Silver</h3>
-                <p className="text-text-secondary text-sm mb-4">For active music enthusiasts</p>
+                <h3 className="text-xl font-bold text-white mb-1">{t('subscriptions_page.silver_title')}</h3>
+                <p className="text-text-secondary text-sm mb-4">{t('subscriptions_page.silver_desc')}</p>
                 <div className="text-3xl font-bold text-white mb-6">
-                  ${getPlanPrice('silver')} <span className="text-xs text-text-secondary">/ {durationMonths} mo</span>
+                  ${getPlanPrice('silver')} <span className="text-xs text-text-secondary">/ {durationMonths} {t('subscriptions_page.mo')}</span>
                 </div>
                 <ul className="space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Max 100 Playlists</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 100 Streams / Day</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> Custom Profile Picture</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> 📊 Artist stream analytics</li>
-                  <li className="flex items-center gap-2 text-gray-500">🚫 Early Access Releases</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> {t('subscriptions_page.max_100_playlists')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> {t('subscriptions_page.streams_100')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> {t('subscriptions_page.custom_profile_pic')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-green-400" /> {t('subscriptions_page.artist_analytics')}</li>
+                  <li className="flex items-center gap-2 text-gray-500">{t('subscriptions_page.no_early_access')}</li>
                 </ul>
               </div>
               <button
@@ -216,7 +216,7 @@ export default function SubscriptionsPage() {
                   selectedPlan === 'silver' ? 'bg-primary text-black' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'
                 }`}
               >
-                {selectedPlan === 'silver' ? 'Selected' : 'Choose Silver'}
+                {selectedPlan === 'silver' ? t('subscriptions_page.selected') : t('subscriptions_page.choose_silver')}
               </button>
             </div>
 
@@ -224,20 +224,20 @@ export default function SubscriptionsPage() {
               selectedPlan === 'gold' ? 'border-yellow-400 ring-2 ring-yellow-400/20' : 'border-gray-800'
             }`}>
               <div className="absolute -top-3 right-6 bg-gradient-to-r from-yellow-500 to-amber-600 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                <SparklesIcon className="w-3.5 h-3.5" /> POPULAR
+                <SparklesIcon className="w-3.5 h-3.5" /> {t('subscriptions_page.popular')}
               </div>
               <div>
-                <h3 className="text-xl font-bold text-yellow-400 mb-1">Gold</h3>
-                <p className="text-text-secondary text-sm mb-4">Unlimited freedom & stats</p>
+                <h3 className="text-xl font-bold text-yellow-400 mb-1">{t('subscriptions_page.gold_title')}</h3>
+                <p className="text-text-secondary text-sm mb-4">{t('subscriptions_page.gold_desc')}</p>
                 <div className="text-3xl font-bold text-white mb-6">
-                  ${getPlanPrice('gold')} <span className="text-xs text-text-secondary">/ {durationMonths} mo</span>
+                  ${getPlanPrice('gold')} <span className="text-xs text-text-secondary">/ {durationMonths} {t('subscriptions_page.mo')}</span>
                 </div>
                 <ul className="space-y-3 text-sm text-text-secondary">
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Unlimited Playlists</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Unlimited Streams</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> Custom Profile Picture</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> ⭐ Early Access Releases</li>
-                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> 📊 Artist stream analytics</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> {t('subscriptions_page.unlimited_playlists')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> {t('subscriptions_page.unlimited_streams')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> {t('subscriptions_page.custom_profile_pic')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> {t('subscriptions_page.early_access')}</li>
+                  <li className="flex items-center gap-2"><CheckIcon className="w-4 h-4 text-yellow-400" /> {t('subscriptions_page.artist_analytics')}</li>
                 </ul>
               </div>
               <button
@@ -246,16 +246,16 @@ export default function SubscriptionsPage() {
                   selectedPlan === 'gold' ? 'bg-yellow-400 text-black font-bold' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'
                 }`}
               >
-                {selectedPlan === 'gold' ? 'Selected' : 'Choose Gold'}
+                {selectedPlan === 'gold' ? t('subscriptions_page.selected') : t('subscriptions_page.choose_gold')}
               </button>
             </div>
           </div>
 
           <div className="bg-[#1a1a1a] border border-gray-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
-              <h4 className="text-white font-bold text-lg">Ready to upgrade?</h4>
+              <h4 className="text-white font-bold text-lg">{t('subscriptions_page.ready_upgrade')}</h4>
               <p className="text-text-secondary text-sm">
-                Selected: <span className="text-white font-bold uppercase">{selectedPlan}</span> for {durationMonths} month(s) — Total: <span className="text-primary font-bold">${getPlanPrice(selectedPlan)}</span>
+                {t('subscriptions_page.selected_plan_info')} <span className="text-white font-bold uppercase">{t(`subscription.${selectedPlan}`)}</span> {t('subscriptions_page.for')} {durationMonths} {t('subscriptions_page.months')} — {t('subscriptions_page.total')} <span className="text-primary font-bold">${getPlanPrice(selectedPlan)}</span>
               </p>
             </div>
             <button
@@ -264,7 +264,7 @@ export default function SubscriptionsPage() {
               className="px-8 py-3 bg-primary text-black font-bold rounded-full hover:bg-green-400 transition flex items-center gap-2 disabled:opacity-50"
             >
               <CreditCardIcon className="w-5 h-5" />
-              Proceed to Payment
+              {t('subscriptions_page.proceed_payment')}
             </button>
           </div>
         </div>
